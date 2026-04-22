@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "job-puller"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "python-jobspy>=1.1.80",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "flask>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-requests",
+    "types-PyYAML",
+]
+
+[project.scripts]
+job-puller = "job_puller.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["job_puller*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

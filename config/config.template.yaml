@@ -1,0 +1,51 @@
+# Copy this file to config/config.yaml and fill in your values.
+# config/config.yaml is gitignored — your locations and search terms stay local.
+
+# Where to store the SQLite database and logs.
+data_path: ~/.job_puller
+
+search:
+  # Job titles to search for. Customize for your role.
+  terms:
+    - "Product Manager"
+    - "Senior Product Manager"
+    - "Software Engineer"
+    - "Data Scientist"
+  # Locations passed to job boards. Include "Remote" to capture remote-first listings.
+  locations:
+    - "Remote"
+    - "Your City, ST"
+  sites:
+    - linkedin
+    - indeed
+  results_per_site: 25
+  hours_old: 24          # Only fetch listings posted in the last N hours
+  job_type: fulltime
+  is_remote: null        # null = both remote and on-site; filtering handled below
+  # Non-remote jobs are only kept if their location contains one of these strings.
+  allowed_locations:
+    - "your city"
+    - "remote"
+
+tangerine:
+  enabled: true
+  base_url: https://tangerinefeed.net/remote/product-manager-jobs/region/US
+  sort: recent
+  hours_old: 24
+  fetch_details: true
+  delay_seconds: 1
+
+pmjb:
+  enabled: true
+  hours_old: 24
+  fetch_descriptions: true
+  delay_seconds: 1.0
+
+report:
+  top_n: 20              # Number of jobs shown in the web UI and digest
+  open_after_run: false
+
+# Optional: URL of a running job-search API server.
+# When set, marking a job "applied" in job_puller will POST the application there.
+# Leave blank or remove this line to disable.
+job_search_api: ""

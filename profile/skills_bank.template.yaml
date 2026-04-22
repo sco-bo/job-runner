@@ -1,0 +1,64 @@
+# Copy this file to skills_bank.yaml and fill in your details.
+# This is the single source of truth for all resume content.
+# The tool reads this file but never modifies it.
+
+name: "Your Name"
+email: "you@example.com"
+location: "Remote, US"
+linkedin: "https://linkedin.com/in/yourhandle"
+
+# 2-3 sentence summaries keyed by theme.
+# The tool selects the best variant per job based on keyword overlap.
+# Themes: data, technical, api, growth, customer, compliance, fintech,
+#         self-serve, analytics, leadership, startup, developer-platform
+summary_variants:
+  data: >
+    Product leader with X years building data and analytics platforms.
+    Proven track record shipping self-serve tools that reduce time-to-insight
+    for analysts and data teams.
+  customer: >
+    Product leader with X years driving customer-facing product strategy
+    and activation. Focused on turning user insights into shipped features
+    that improve retention and NPS.
+  technical: >
+    Technical product leader with X years partnering with engineering on
+    platform and infrastructure products. Comfortable in the details of
+    system design while keeping teams aligned on customer outcomes.
+  growth: >
+    Growth-focused PM with X years running experimentation programs and
+    funnel optimization. Track record of lifting activation and retention
+    metrics through rigorous A/B testing.
+
+education:
+  - degree: "B.S. Your Major"
+    school: "Your University"
+    year: 2015
+
+certifications: []
+  # - "AWS Certified Solutions Architect"
+  # - "Pragmatic Marketing Certified"
+
+# Controlled theme vocabulary for the themes field:
+#   data, technical, api, growth, customer, compliance, fintech,
+#   self-serve, analytics, leadership, startup, developer-platform
+#
+# Strength values:
+#   high       — lead bullets, your strongest achievements
+#   medium     — solid supporting evidence
+#   supporting — context/filler, used only to reach 8-10 bullets
+
+bullets:
+  - id: example-bullet-1
+    text: "Led cross-functional team to ship X, resulting in Y% improvement in Z"
+    themes: [customer, growth]
+    strength: high
+
+  - id: example-bullet-2
+    text: "Built self-serve analytics dashboard used by 200+ internal stakeholders"
+    themes: [data, self-serve, analytics]
+    strength: high
+
+  - id: example-bullet-3
+    text: "Partnered with engineering to redesign API platform, reducing integration time by 40%"
+    themes: [technical, api, developer-platform]
+    strength: medium

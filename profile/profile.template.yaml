@@ -1,0 +1,37 @@
+# Copy this file to profile.yaml and fill in your details.
+# profile.yaml controls search parameters and scoring weights.
+# Resume content lives in skills_bank.yaml.
+
+name: "Your Name"
+
+target_titles:
+  - "Senior Product Manager"
+  - "Director of Product"
+  - "Group Product Manager"
+  - "Head of Product"
+
+target_levels:
+  - senior
+  - director
+  - lead
+  - head
+
+years_experience: 8
+
+target_salary_min: 150000
+target_salary_max: 300000
+
+preferred_remote: true
+
+preferred_locations:
+  - "Remote"
+  - "United States"
+
+preferred_company_size:   # startup, mid, large — leave empty to match all
+  - startup
+  - mid
+
+avoid_keywords:           # jobs containing any of these get a 0.5x score penalty
+  - "must be on-site"
+  - "no remote"
+  - "on-site required"

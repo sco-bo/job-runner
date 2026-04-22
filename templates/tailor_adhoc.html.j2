@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ page_title or 'Tailor a job manually' }} — Job Puller</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root {
+    --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+    --border: #e5e7eb; --text: #111827; --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+
+  .main { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+
+  .form-group { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase;
+          letter-spacing: .5px; color: var(--gray); margin-bottom: 6px; }
+  label .optional { font-weight: 400; text-transform: none; letter-spacing: 0;
+                    color: #9ca3af; margin-left: 4px; }
+  input[type="text"], textarea {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: 14px; color: var(--text);
+    background: white; outline: none;
+  }
+  input[type="text"]:focus, textarea:focus { border-color: var(--blue); }
+  textarea { min-height: 300px; resize: vertical; line-height: 1.5; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .btn-submit {
+    background: #1e293b; color: white; border: none; border-radius: 6px;
+    padding: 10px 28px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .btn-submit:hover { background: #334155; }
+
+  .hint { font-size: 12px; color: var(--gray); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">← Back</a>
+  <h1>{{ page_title or 'Tailor a job manually' }}</h1>
+</div>
+
+<div class="main">
+  <form method="POST" action="{{ '/interview/adhoc' if mode == 'interview' else '/tailor/adhoc' }}">
+
+    <div class="row">
+      <div class="form-group">
+        <label>Job title</label>
+        <input type="text" name="title" required placeholder="e.g. Senior Product Manager">
+      </div>
+      <div class="form-group">
+        <label>Company</label>
+        <input type="text" name="company" required placeholder="e.g. Acme Corp">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Job posting URL <span class="optional">(optional)</span></label>
+      <input type="text" name="url" placeholder="https://…">
+    </div>
+
+    <div class="form-group">
+      <label>Job description</label>
+      <textarea name="description" required placeholder="Paste the full job description here…"></textarea>
+      <p class="hint">Paste the complete JD for the best bullet matching and summary recommendation.</p>
+    </div>
+
+    <button type="submit" class="btn-submit">
+      {{ 'Generate Interview Prep →' if mode == 'interview' else 'Generate Tailor Prompt →' }}
+    </button>
+
+  </form>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Puller{% if not is_server %} — {{ generated_at }}{% endif %}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  /* ── Light mode tokens ── */
+  :root {
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --blue: #3b82f6; --radius: 8px;
+
+    --bg:        #f9fafb;
+    --surface:   #ffffff;
+    --surface2:  #f3f4f6;
+    --border:    #e5e7eb;
+    --text:      #111827;
+    --text-muted:#6b7280;
+    --text-dim:  #9ca3af;
+
+    --header-bg: #1e293b;
+    --header-text: #ffffff;
+    --header-muted: #94a3b8;
+    --header-link: #6ee7b7;
+    --header-link-hover: #a7f3d0;
+
+    --tab-bg:    #f3f4f6;
+    --tab-active-bg: #1e293b;
+    --tab-active-text: #ffffff;
+  }
+
+  /* ── Dark mode token overrides ── */
+  [data-theme="dark"] {
+    --bg:        #0f172a;
+    --surface:   #1e293b;
+    --surface2:  #162032;
+    --border:    #334155;
+    --text:      #f1f5f9;
+    --text-muted:#94a3b8;
+    --text-dim:  #64748b;
+
+    --tab-bg:    #1e293b;
+    --tab-active-bg: #22c55e;
+    --tab-active-text: #052e16;
+  }
+
+  /* ── Reset & base ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ── Focus styles ── */
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* ── Skip link ── */
+  .skip-link {
+    position: absolute; top: -9999px; left: 8px;
+    background: var(--blue); color: #fff; padding: 6px 12px;
+    border-radius: 4px; font-size: 13px; font-weight: 600; z-index: 9999;
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 8px; }
+
+  /* ── Header ── */
+  .header { background: var(--header-bg); color: var(--header-text); padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 16px; font-weight: 600; letter-spacing: .5px; }
+  .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .btn-adhoc { color: var(--header-link); text-decoration: none; font-size: 12px;
+               font-weight: 500; white-space: nowrap; }
+  .btn-adhoc:hover { color: var(--header-link-hover); }
+  .stats-bar { display: flex; gap: 16px; font-size: 12px; color: var(--header-muted); }
+  .stats-bar span { display: flex; align-items: center; gap: 4px; }
+  .stats-bar strong { color: var(--header-text); }
+
+  /* Dark mode toggle */
+  .btn-theme { background: transparent; border: 1px solid #475569; border-radius: 6px;
+               color: var(--header-muted); padding: 4px 8px; font-size: 13px; cursor: pointer;
+               line-height: 1; transition: border-color .15s, color .15s; }
+  .btn-theme:hover { border-color: #94a3b8; color: var(--header-text); }
+
+  /* ── Filters ── */
+  .filters { background: var(--surface); border-bottom: 1px solid var(--border);
+             padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .filters input[type=text] {
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px;
+    font-size: 13px; width: 220px; outline: none;
+    background: var(--surface); color: var(--text); }
+  .filters input[type=text]:focus { border-color: var(--blue); }
+  .filter-label { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+  .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tab { background: var(--tab-bg); border: 1px solid var(--border); border-radius: 20px;
+         padding: 3px 10px; font-size: 12px; cursor: pointer; user-select: none;
+         transition: background .15s; text-decoration: none; color: var(--text); }
+  .tab:hover { background: var(--border); }
+  .tab[aria-selected="true"] { background: var(--tab-active-bg); color: var(--tab-active-text);
+                                border-color: var(--tab-active-bg); }
+  .filter-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  .run-select { font-size: 12px; padding: 3px 8px; border: 1px solid var(--border);
+                border-radius: 6px; background: var(--surface2); color: var(--text);
+                cursor: pointer; outline: none; }
+  .run-select:focus { border-color: var(--blue); }
+
+  /* ── Main layout ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted);
+                   text-transform: uppercase; letter-spacing: .5px; margin: 24px 0 12px; }
+
+  /* ── Job cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--radius); padding: 14px 16px;
+          display: flex; flex-direction: column; gap: 8px; }
+  .card.muted { background: var(--surface2); opacity: .75; }
+  .card.hidden { display: none; }
+
+  /* Score badge */
+  .card-top { display: flex; align-items: flex-start; gap: 10px; }
+  .score { font-size: 20px; font-weight: 700; min-width: 44px; text-align: center;
+           padding: 2px 6px; border-radius: 6px; line-height: 1.3; }
+  .score.high { background: #dcfce7; color: #15803d; }
+  .score.mid  { background: #fef9c3; color: #92400e; }
+  .score.low  { background: #fee2e2; color: #b91c1c; }
+  [data-theme="dark"] .score.high { background: #14532d; color: #86efac; }
+  [data-theme="dark"] .score.mid  { background: #451a03; color: #fcd34d; }
+  [data-theme="dark"] .score.low  { background: #450a0a; color: #fca5a5; }
+  .card-title { flex: 1; }
+  .card-title h3 { font-size: 14px; font-weight: 600; line-height: 1.4; }
+  .card-title .company { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Badges */
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .badge.remote   { background: #dbeafe; color: #1d4ed8; }
+  .badge.site     { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge.manual   { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+  .badge.pmjb     { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+  .badge.state-warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .badge.applied  { background: #dcfce7; color: #166534; }
+  .badge.salary   { background: #fdf4ff; color: #7e22ce; }
+  .badge.theme    { background: #fef3c7; color: #92400e; }
+  .badge.industry { background: #e0f2fe; color: #0369a1; }
+  .badge.fetched      { background: var(--surface2); color: var(--text-dim); font-weight: 400; }
+  .badge.connections  { background: #fce7f3; color: #831843; border: 1px solid #f9a8d4; }
+  [data-theme="dark"] .badge.remote   { background: #1e3a5f; color: #93c5fd; }
+  [data-theme="dark"] .badge.manual   { background: #2d1b00; color: #fcd34d; border-color: #854d0e; }
+  [data-theme="dark"] .badge.pmjb     { background: #022c22; color: #6ee7b7; border-color: #065f46; }
+  [data-theme="dark"] .badge.state-warn { background: #2d1b00; color: #fcd34d; border-color: #92400e; }
+  [data-theme="dark"] .badge.applied  { background: #14532d; color: #86efac; }
+  [data-theme="dark"] .badge.salary   { background: #2e1065; color: #d8b4fe; }
+  [data-theme="dark"] .badge.theme    { background: #2d1b00; color: #fcd34d; }
+  [data-theme="dark"] .badge.industry     { background: #0c2a4a; color: #7dd3fc; }
+  [data-theme="dark"] .badge.connections  { background: #4a1942; color: #f9a8d4; border-color: #831843; }
+
+  /* Rationale */
+  .rationale { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* Bullet teasers */
+  .teasers { display: flex; flex-direction: column; gap: 3px; }
+  .teaser { font-size: 12px; color: var(--text-muted); padding-left: 10px;
+            border-left: 2px solid var(--border); line-height: 1.4; }
+
+  /* Actions */
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .btn { border: 1px solid var(--border); border-radius: 6px; padding: 4px 12px;
+         font-size: 12px; cursor: pointer; background: var(--surface); text-decoration: none;
+         color: var(--text); display: inline-block; }
+  .btn:hover { background: var(--surface2); }
+  .btn.apply   { border-color: #86efac; color: #166534; }
+  .btn.apply:hover { background: #dcfce7; }
+  .btn.dismiss { border-color: #fca5a5; color: #991b1b; }
+  .btn.dismiss:hover { background: #fee2e2; }
+  .btn.restore { border-color: #93c5fd; color: #1e40af; }
+  .btn.restore:hover { background: #dbeafe; }
+  .btn.view { border-color: #a5b4fc; color: #3730a3; }
+  .btn.view:hover { background: #ede9fe; }
+  .btn.tailor { border-color: #6ee7b7; color: #065f46; }
+  .btn.tailor:hover { background: #d1fae5; }
+  [data-theme="dark"] .btn.apply   { border-color: #166534; color: #86efac; }
+  [data-theme="dark"] .btn.apply:hover { background: #14532d; }
+  [data-theme="dark"] .btn.dismiss { border-color: #991b1b; color: #fca5a5; }
+  [data-theme="dark"] .btn.dismiss:hover { background: #450a0a; }
+  [data-theme="dark"] .btn.restore { border-color: #1e40af; color: #93c5fd; }
+  [data-theme="dark"] .btn.restore:hover { background: #1e3a5f; }
+  [data-theme="dark"] .btn.view { border-color: #3730a3; color: #a5b4fc; }
+  [data-theme="dark"] .btn.view:hover { background: #1e1b4b; }
+  [data-theme="dark"] .btn.tailor { border-color: #065f46; color: #6ee7b7; }
+  [data-theme="dark"] .btn.tailor:hover { background: #022c22; }
+
+  /* Dismissed section */
+  .dismissed-toggle { cursor: pointer; user-select: none; font-size: 13px;
+                      color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .dismissed-toggle:hover { color: var(--text); }
+  .dismissed-rows { display: none; margin-top: 8px; }
+  .dismissed-rows.open { display: block; }
+  .dismissed-row { display: flex; align-items: center; justify-content: space-between;
+                   padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+                   background: var(--surface); margin-bottom: 6px; font-size: 13px; }
+  .dismissed-row .title-co { flex: 1; }
+  .dismissed-row .title-co strong { font-weight: 500; }
+  .dismissed-row .title-co span { color: var(--text-muted); margin-left: 6px; font-size: 12px; }
+
+  /* Start Job Pull button */
+  .btn-pull { background: #22c55e; color: #052e16; border: none; border-radius: 6px;
+    padding: 5px 14px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: background .15s; }
+  .btn-pull:hover { background: #4ade80; }
+  .btn-pull:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
+
+  /* Pull progress panel */
+  .pull-panel { background: #0f172a; border-bottom: 1px solid #1e293b;
+    padding: 10px 20px; font-size: 12px; color: #94a3b8; }
+  .pull-panel--error .pull-status-text { color: #f87171; }
+  .pull-stages { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .pull-stage { padding: 2px 8px; border-radius: 10px; background: #1e293b;
+    color: #64748b; font-size: 11px; }
+  .pull-stage--active { background: #22c55e; color: #052e16; font-weight: 600; }
+  .pull-stage--done   { background: #166534; color: #86efac; }
+  .pull-stage-sep { color: #374151; }
+  .pull-status-text { color: #cbd5e1; margin-bottom: 4px; }
+  .pull-log { max-height: 160px; overflow-y: auto; font-family: monospace;
+    font-size: 11px; line-height: 1.6; color: #64748b; }
+  .pull-log p { margin: 0; border-bottom: 1px solid #1e293b; padding: 1px 0; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 32px 20px; font-size: 12px; color: var(--text-muted); }
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: 1fr; }
+    .stats-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Skip to main content (accessibility) -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Header -->
+<header class="header" role="banner">
+  <h1>Job Puller</h1>
+  <div class="header-right">
+    {% if is_server %}
+    <button id="pull-btn" class="btn-pull" data-state="idle"
+            onclick="startPull()" aria-label="Start job pull">Start Job Pull</button>
+    <a href="/connections" class="btn-adhoc">Connections ⬡</a>
+    <a href="/tailor/adhoc" class="btn-adhoc">Tailor manually ✦</a>
+    <a href="/interview/adhoc" class="btn-adhoc">Interview prep manually ✦</a>
+    {% endif %}
+    <div class="stats-bar" aria-label="Database statistics">
+      <span><strong>{{ stats.total }}</strong> total</span>
+      <span><strong>{{ stats.new_today }}</strong> new today</span>
+      <span><strong>{{ stats.applied }}</strong> applied</span>
+      <span><strong>{{ stats.dismissed }}</strong> dismissed</span>
+      {% if not is_server %}<span>Generated {{ generated_at }}</span>{% endif %}
+    </div>
+    <button class="btn-theme" id="theme-toggle" onclick="toggleTheme()"
+            aria-label="Switch to dark mode" title="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+{% if is_server %}
+<!-- Pull progress panel (hidden until a run starts) -->
+<div id="pull-panel" class="pull-panel" style="display:none" role="status" aria-live="polite">
+  <div class="pull-stages" aria-label="Pipeline stages">
+    <span class="pull-stage" data-stage="jobspy">JobSpy</span>
+    <span class="pull-stage-sep" aria-hidden="true">→</span>
+    <span class="pull-stage" data-stage="tangerine">Tangerine</span>
+    <span class="pull-stage-sep" aria-hidden="true">→</span>
+    <span class="pull-stage" data-stage="pmjb">PM Job Board</span>
+    <span class="pull-stage-sep" aria-hidden="true">→</span>
+    <span class="pull-stage" data-stage="scoring">Score &amp; Match</span>
+  </div>
+  <div id="pull-status" class="pull-status-text">Starting…</div>
+  <div id="pull-log" class="pull-log" aria-label="Scraper log output"></div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<nav class="filters" aria-label="Filter jobs">
+  <label for="search" class="filter-label" style="margin-left:0">Search</label>
+  <input type="text" id="search" placeholder="Title or company…"
+         oninput="applyFilters()" aria-label="Search jobs by title or company"
+         autocomplete="off" spellcheck="false">
+
+  <span class="filter-sep" aria-hidden="true"></span>
+  <span class="filter-label" id="source-label">Source</span>
+  <div class="filter-tabs" id="source-tabs" role="tablist" aria-labelledby="source-label">
+    <div class="tab" role="tab" tabindex="0" aria-selected="true"  data-source="all"       onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">All</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-source="linkedin"  onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">LinkedIn</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-source="indeed"    onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">Indeed</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-source="tangerine" onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">Tangerine</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-source="pmjb"      onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">PM Job Board</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-source="manual"    onclick="setTab(this,'source-tabs')" onkeydown="tabKey(event,this,'source-tabs')">Manual</div>
+  </div>
+
+  <span class="filter-sep" aria-hidden="true"></span>
+  <span class="filter-label" id="theme-label">Theme</span>
+  <div class="filter-tabs" id="theme-tabs" role="tablist" aria-labelledby="theme-label">
+    <div class="tab" role="tab" tabindex="0" aria-selected="true"  data-theme="all"        onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">All</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="data"       onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">data</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="technical"  onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">technical</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="api"        onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">api</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="compliance" onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">compliance</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="growth"     onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">growth</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="customer"   onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">customer</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-theme="self-serve" onclick="setTab(this,'theme-tabs')" onkeydown="tabKey(event,this,'theme-tabs')">self-serve</div>
+  </div>
+
+  <span class="filter-sep" aria-hidden="true"></span>
+  <span class="filter-label" id="industry-label">Industry</span>
+  <div class="filter-tabs" id="industry-tabs" role="tablist" aria-labelledby="industry-label">
+    <div class="tab" role="tab" tabindex="0" aria-selected="true"  data-industry="all"             onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">All</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="fintech"         onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">fintech</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="compliance"      onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">compliance</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="healthcare"      onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">healthcare</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="developer-tools" onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">dev tools</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="data-analytics"  onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">data</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="cybersecurity"   onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">security</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="hr-tech"         onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">hr-tech</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-industry="saas-b2b"        onclick="setTab(this,'industry-tabs')" onkeydown="tabKey(event,this,'industry-tabs')">saas-b2b</div>
+  </div>
+
+  {% if is_server and runs %}
+  <span class="filter-sep" aria-hidden="true"></span>
+  <label class="filter-label" for="run-select">Run</label>
+  <select class="run-select" id="run-select" onchange="location.href=this.value"
+          aria-label="Filter by scrape run date">
+    <option value="/" {% if not selected_run_id %}selected{% endif %}>All runs</option>
+    {% for run in runs %}
+    <option value="/?run={{ run.id }}" {% if selected_run_id == run.id %}selected{% endif %}>
+      {{- run.date_label }} — {{ run.jobs_new }} new
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+</nav>
+
+<!-- Main -->
+<main class="main" id="main-content" role="main">
+
+  {% set run_date_map = {} %}
+  {% for run in runs %}{% if run_date_map.update({run.id: run.date_label}) %}{% endif %}{% endfor %}
+
+  <!-- Top ranked jobs -->
+  <h2 class="section-title">Top {{ top_jobs|length }} Jobs</h2>
+  <div class="cards" id="job-cards" role="list">
+  {% for job in top_jobs %}
+  {% set score_class = "high" if job.score >= 80 else ("mid" if job.score >= 60 else "low") %}
+  <article class="card" role="listitem"
+       data-id="{{ job.id }}"
+       data-title="{{ job.title|lower }}"
+       data-company="{{ job.company|lower }}"
+       data-source="{{ job.site }}"
+       data-theme="{{ job.recommended_summary or '' }}"
+       data-industry="{{ job.industry or '' }}"
+       aria-label="{{ job.title }} at {{ job.company }}, score {{ job.score|int }}">
+
+    <div class="card-top">
+      <div class="score {{ score_class }}" aria-label="Score: {{ job.score|int }}">{{ job.score|int }}</div>
+      <div class="card-title">
+        <h3>{{ job.title }}</h3>
+        <div class="company">{{ job.company }}</div>
+      </div>
+    </div>
+
+    <div class="badges" aria-label="Job details">
+      {% if job.is_remote %}<span class="badge remote">Remote</span>{% endif %}
+      <span class="badge {{ 'manual' if job.site == 'manual' else ('pmjb' if job.site == 'pmjb' else 'site') }}">{{ job.site }}</span>
+      {% if job.salary_min or job.salary_max %}
+        {% set lo = ("$%dk"|format((job.salary_min/1000)|int)) if job.salary_min else "?" %}
+        {% set hi = ("$%dk"|format((job.salary_max/1000)|int)) if job.salary_max else "?" %}
+        <span class="badge salary" aria-label="Salary range: {{ lo }} to {{ hi }}">{{ lo }}–{{ hi }}</span>
+      {% endif %}
+      {% if job.recommended_summary %}
+        <span class="badge theme">{{ job.recommended_summary }}</span>
+      {% endif %}
+      {% if job.industry %}
+        <span class="badge industry">{{ job.industry }}</span>
+      {% endif %}
+      {% if job.connection_count > 0 %}
+        <span class="badge connections"
+              title="{{ job.connection_count }} connection{{ 's' if job.connection_count != 1 else '' }} at this company">
+          👤 {{ job.connection_count }}</span>
+      {% endif %}
+      {% if job.state_restricted %}
+        <span class="badge state-warn" title="Remote work restricted to specific states — verify CO is included">state-restricted</span>
+      {% endif %}
+      {% if job.first_seen_run and job.first_seen_run in run_date_map %}
+        <span class="badge fetched">fetched {{ run_date_map[job.first_seen_run] }}</span>
+      {% endif %}
+    </div>
+
+    {% if job.score_rationale %}
+    <div class="rationale">{{ job.score_rationale[:120] }}</div>
+    {% endif %}
+
+    {% if job.description_highlights %}
+    <ul class="teasers" aria-label="Job description highlights">
+      {% for line in job.description_highlights %}
+        <li class="teaser">{{ line }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="actions">
+      {% if is_server %}
+      <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
+        <input type="hidden" name="status" value="applied">
+        <button type="submit" class="btn apply"
+                aria-label="Mark {{ job.title }} at {{ job.company }} as applied">Apply ✓</button>
+      </form>
+      <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
+        <input type="hidden" name="status" value="dismissed">
+        <button type="submit" class="btn dismiss"
+                aria-label="Dismiss {{ job.title }} at {{ job.company }}">Dismiss ✗</button>
+      </form>
+      <a href="/job/{{ job.id }}/tailor" class="btn tailor">Tailor ✦</a>
+      <a href="/job/{{ job.id }}/interview" class="btn tailor">Interview ✦</a>
+      {% endif %}
+      <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn view"
+         aria-label="View {{ job.title }} posting (opens in new tab)">View job ↗</a>
+    </div>
+  </article>
+  {% else %}
+  <p style="color:var(--text-muted);padding:20px 0">No scored jobs found. Run <code>job-puller run</code> first.</p>
+  {% endfor %}
+  </div>
+
+  <!-- Applied section -->
+  {% if applied_jobs %}
+  <h2 class="section-title" style="margin-top:40px">Applied ({{ applied_jobs|length }})</h2>
+  <div class="cards" role="list">
+  {% for job in applied_jobs %}
+  <article class="card muted" role="listitem" aria-label="{{ job.title }} at {{ job.company }}, applied">
+    <div class="card-top">
+      <div class="score mid" aria-label="Score: {{ job.score|int if job.score else 'unscored' }}">
+        {{ job.score|int if job.score else "–" }}
+      </div>
+      <div class="card-title">
+        <h3>{{ job.title }}</h3>
+        <div class="company">{{ job.company }}</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge applied">Applied ✓</span>
+      {% if job.is_remote %}<span class="badge remote">Remote</span>{% endif %}
+      <span class="badge {{ 'manual' if job.site == 'manual' else ('pmjb' if job.site == 'pmjb' else 'site') }}">{{ job.site }}</span>
+    </div>
+    <div class="actions">
+      {% if is_server %}
+      <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
+        <input type="hidden" name="status" value="reset">
+        <button type="submit" class="btn restore"
+                aria-label="Restore {{ job.title }} at {{ job.company }} to active">Restore</button>
+      </form>
+      {% endif %}
+      <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn view"
+         aria-label="View {{ job.title }} posting (opens in new tab)">View job ↗</a>
+    </div>
+  </article>
+  {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Dismissed section (server only) -->
+  {% if is_server and dismissed_jobs %}
+  <div style="margin-top:40px">
+    <button class="dismissed-toggle" onclick="toggleDismissed()"
+            aria-expanded="false" aria-controls="dismissed-rows"
+            id="dismissed-toggle-btn">
+      <span id="dismissed-arrow" aria-hidden="true">▶</span>
+      Dismissed ({{ dismissed_jobs|length }}) — click to expand
+    </button>
+    <div class="dismissed-rows" id="dismissed-rows" role="list">
+      {% for job in dismissed_jobs %}
+      <div class="dismissed-row" role="listitem">
+        <div class="title-co">
+          <strong>{{ job.title }}</strong>
+          <span>{{ job.company }}</span>
+        </div>
+        <form method="POST" action="/job/{{ job.id }}/status" style="display:inline;margin-left:12px">
+          <input type="hidden" name="status" value="reset">
+          <button type="submit" class="btn restore"
+                  aria-label="Restore {{ job.title }} at {{ job.company }}">Restore</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+
+<!-- Footer -->
+<footer class="footer" role="contentinfo">
+  Job Puller &nbsp;·&nbsp; {{ stats.total }} jobs in DB &nbsp;·&nbsp;
+  {{ stats.applied }} applied &nbsp;·&nbsp; {{ stats.dismissed }} dismissed
+  {% if not is_server %}&nbsp;·&nbsp; Generated {{ generated_at }}{% endif %}
+</footer>
+
+<script>
+// --- Dark mode ---
+(function () {
+  const html = document.documentElement;
+  const btn  = document.getElementById('theme-toggle');
+  const KEY  = 'jp-theme';
+
+  function apply(theme) {
+    html.setAttribute('data-theme', theme);
+    if (btn) {
+      btn.textContent = theme === 'dark' ? '☀' : '🌙';
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+  }
+
+  function init() {
+    const saved = localStorage.getItem(KEY);
+    if (saved) { apply(saved); return; }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    apply(prefersDark ? 'dark' : 'light');
+  }
+
+  window.toggleTheme = function () {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(KEY, next);
+    apply(next);
+  };
+
+  // React to OS-level changes (only when no saved preference)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (!localStorage.getItem(KEY)) apply(e.matches ? 'dark' : 'light');
+  });
+
+  init();
+})();
+
+// --- Filter state ---
+let activeSource   = 'all';
+let activeTheme    = 'all';
+let activeIndustry = 'all';
+
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('#job-cards .card').forEach(card => {
+    const matchSearch   = !q || card.dataset.title.includes(q) || card.dataset.company.includes(q);
+    const matchSource   = activeSource   === 'all' || card.dataset.source   === activeSource;
+    const matchTheme    = activeTheme    === 'all' || card.dataset.theme     === activeTheme;
+    const matchIndustry = activeIndustry === 'all' || card.dataset.industry  === activeIndustry;
+    card.classList.toggle('hidden', !(matchSearch && matchSource && matchTheme && matchIndustry));
+  });
+}
+
+function setTab(el, groupId) {
+  document.querySelectorAll('#' + groupId + ' .tab').forEach(t => {
+    t.setAttribute('aria-selected', 'false');
+  });
+  el.setAttribute('aria-selected', 'true');
+  if      (groupId === 'source-tabs')   activeSource   = el.dataset.source;
+  else if (groupId === 'industry-tabs') activeIndustry = el.dataset.industry;
+  else                                  activeTheme    = el.dataset.theme;
+  applyFilters();
+}
+
+function tabKey(e, el, groupId) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTab(el, groupId); }
+}
+
+// --- Dismissed toggle ---
+function toggleDismissed() {
+  const rows   = document.getElementById('dismissed-rows');
+  const arrow  = document.getElementById('dismissed-arrow');
+  const toggle = document.getElementById('dismissed-toggle-btn');
+  if (rows) {
+    rows.classList.toggle('open');
+    const isOpen = rows.classList.contains('open');
+    if (arrow)  arrow.textContent = isOpen ? '▼' : '▶';
+    if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+}
+
+{% if is_server %}
+// --- Start Job Pull ---
+(function () {
+  const STAGES = ['jobspy', 'tangerine', 'pmjb', 'scoring'];
+  let activeSource = null;
+
+  function startPull() {
+    const btn = document.getElementById('pull-btn');
+    if (btn && btn.dataset.state === 'running') return;
+    fetch('/api/run', { method: 'POST' })
+      .then(r => {
+        if (r.status === 409 || r.status === 202) {
+          setRunning();
+          openStream();
+        } else {
+          r.json().then(d => showError(d.message || 'Failed to start run'));
+        }
+      })
+      .catch(err => showError(err.message));
+  }
+
+  function openStream() {
+    if (activeSource) { activeSource.close(); activeSource = null; }
+    clearLog();
+    const source = new EventSource('/api/run/stream');
+    activeSource = source;
+
+    source.addEventListener('stage', e => {
+      const d = JSON.parse(e.data);
+      setStage(d.stage, d.label);
+    });
+    source.addEventListener('log', e => appendLog(e.data));
+    source.addEventListener('done', e => {
+      let d = {};
+      try { d = JSON.parse(e.data); } catch (_) {}
+      if (d.jobs_fetched !== undefined) showComplete(d);
+      source.close(); activeSource = null; setIdle();
+      setTimeout(() => location.reload(), 1800);
+    });
+    source.addEventListener('error', e => {
+      let msg = 'Pipeline error';
+      try { msg = JSON.parse(e.data).message; } catch (_) {}
+      showError(msg);
+      source.close(); activeSource = null; setIdle();
+    });
+    source.onerror = () => {
+      const btn = document.getElementById('pull-btn');
+      if (btn && btn.dataset.state !== 'running') return;
+      showError('Connection lost');
+      source.close(); activeSource = null; setIdle();
+    };
+  }
+
+  function setRunning() {
+    const btn = document.getElementById('pull-btn');
+    if (btn) { btn.textContent = 'Pulling…'; btn.dataset.state = 'running'; btn.disabled = true; }
+    const panel = document.getElementById('pull-panel');
+    if (panel) panel.style.display = 'block';
+    const status = document.getElementById('pull-status');
+    if (status) status.textContent = 'Starting…';
+  }
+
+  function setIdle() {
+    const btn = document.getElementById('pull-btn');
+    if (btn) { btn.textContent = 'Start Job Pull'; btn.dataset.state = 'idle'; btn.disabled = false; }
+  }
+
+  function setStage(stage, label) {
+    const status = document.getElementById('pull-status');
+    if (status) status.textContent = label;
+    const idx = STAGES.indexOf(stage);
+    document.querySelectorAll('.pull-stage').forEach(el => {
+      const i = STAGES.indexOf(el.dataset.stage);
+      el.classList.toggle('pull-stage--active', el.dataset.stage === stage);
+      el.classList.toggle('pull-stage--done', i < idx);
+    });
+  }
+
+  function appendLog(line) {
+    const el = document.getElementById('pull-log');
+    if (!el) return;
+    const p = document.createElement('p');
+    p.textContent = line;
+    el.appendChild(p);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog() {
+    const el = document.getElementById('pull-log');
+    if (el) el.innerHTML = '';
+    document.querySelectorAll('.pull-stage').forEach(el => {
+      el.classList.remove('pull-stage--active', 'pull-stage--done');
+    });
+    const panel = document.getElementById('pull-panel');
+    if (panel) panel.classList.remove('pull-panel--error');
+  }
+
+  function showComplete(d) {
+    const status = document.getElementById('pull-status');
+    if (status) status.textContent =
+      `Done — ${d.jobs_fetched} fetched, ${d.jobs_new} new, ${d.scored} scored. Reloading…`;
+    document.querySelectorAll('.pull-stage').forEach(el => {
+      el.classList.add('pull-stage--done');
+      el.classList.remove('pull-stage--active');
+    });
+  }
+
+  function showError(msg) {
+    const status = document.getElementById('pull-status');
+    if (status) status.textContent = `Error: ${msg}`;
+    const panel = document.getElementById('pull-panel');
+    if (panel) { panel.style.display = 'block'; panel.classList.add('pull-panel--error'); }
+    setIdle();
+  }
+
+  window.startPull = startPull;
+})();
+{% endif %}
+</script>
+</body>
+</html>

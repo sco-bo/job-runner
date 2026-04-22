@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connections — Job Puller</title>
+<style>
+  :root {
+    --bg: #f9fafb; --surface: #ffffff; --surface2: #f3f4f6;
+    --border: #e5e7eb; --text: #111827; --text-muted: #6b7280;
+    --blue: #3b82f6; --radius: 8px;
+    --header-bg: #1e293b; --header-text: #ffffff; --header-link: #6ee7b7;
+  }
+  [data-theme="dark"] {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #162032;
+    --border: #334155; --text: #f1f5f9; --text-muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 3px; }
+
+  .header { background: var(--header-bg); color: var(--header-text); padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 16px; font-weight: 600; letter-spacing: .5px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .btn-back { color: var(--header-link); text-decoration: none; font-size: 12px; font-weight: 500; }
+  .btn-back:hover { color: #a7f3d0; }
+  .btn-theme { background: transparent; border: 1px solid #475569; border-radius: 6px;
+               color: #94a3b8; padding: 4px 8px; font-size: 13px; cursor: pointer; }
+  .btn-theme:hover { border-color: #94a3b8; color: var(--header-text); }
+
+  .main { max-width: 800px; margin: 0 auto; padding: 32px 20px; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+
+  /* Add form */
+  .add-form { background: var(--surface); border: 1px solid var(--border);
+              border-radius: var(--radius); padding: 20px; margin-bottom: 32px; }
+  .add-form h3 { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+  .form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .form-group input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+                      font-size: 13px; background: var(--bg); color: var(--text); outline: none; }
+  .form-group input:focus { border-color: var(--blue); }
+  .btn-add { background: #22c55e; color: #052e16; border: none; border-radius: 6px;
+             padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+             align-self: flex-end; white-space: nowrap; }
+  .btn-add:hover { background: #4ade80; }
+
+  /* Table */
+  .connections-table { width: 100%; border-collapse: collapse; }
+  .connections-table th { font-size: 11px; font-weight: 600; text-transform: uppercase;
+                          letter-spacing: .5px; color: var(--text-muted); padding: 8px 12px;
+                          text-align: left; border-bottom: 2px solid var(--border); }
+  .connections-table td { padding: 10px 12px; border-bottom: 1px solid var(--border);
+                          font-size: 13px; }
+  .connections-table tr:last-child td { border-bottom: none; }
+  .connections-table tr:hover td { background: var(--surface2); }
+  .source-badge { font-size: 11px; padding: 1px 6px; border-radius: 8px;
+                  background: var(--surface2); color: var(--text-muted);
+                  border: 1px solid var(--border); }
+  .btn-delete { background: none; border: 1px solid #fca5a5; color: #991b1b;
+                border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+  .btn-delete:hover { background: #fee2e2; }
+  [data-theme="dark"] .btn-delete { border-color: #991b1b; color: #fca5a5; }
+  [data-theme="dark"] .btn-delete:hover { background: #450a0a; }
+
+  .empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="header" role="banner">
+  <h1>Job Puller — Connections</h1>
+  <div class="header-right">
+    <a href="/" class="btn-back">← Back to dashboard</a>
+    <button class="btn-theme" id="theme-toggle" onclick="toggleTheme()"
+            aria-label="Switch to dark mode">🌙</button>
+  </div>
+</header>
+
+<main class="main" role="main">
+  <h2>Network Connections</h2>
+  <p class="subtitle">
+    Companies where you have a connection get a score boost (+5 for 1, +8 for 2–4, +10 for 5+).
+    Match is case-insensitive exact on company name.
+    Run a rescore after adding connections to apply the boost to existing jobs.
+  </p>
+
+  <!-- Add form -->
+  <div class="add-form">
+    <h3>Add a connection</h3>
+    <form method="POST" action="/connections">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="f-name">Name <span style="color:#ef4444">*</span></label>
+          <input type="text" id="f-name" name="name" placeholder="Jane Smith" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="f-company">Company <span style="color:#ef4444">*</span></label>
+          <input type="text" id="f-company" name="company" placeholder="Stripe" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="f-position">Position <span style="color:var(--text-muted)">(optional)</span></label>
+          <input type="text" id="f-position" name="position" placeholder="Senior PM" autocomplete="off">
+        </div>
+        <button type="submit" class="btn-add">Add connection</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Connections list -->
+  {% if connections %}
+  <table class="connections-table" aria-label="Connections list">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Company</th>
+        <th>Position</th>
+        <th>Source</th>
+        <th>Added</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for c in connections %}
+    <tr>
+      <td>{{ c.name }}</td>
+      <td><strong>{{ c.company }}</strong></td>
+      <td>{{ c.position or '—' }}</td>
+      <td><span class="source-badge">{{ c.source }}</span></td>
+      <td style="color:var(--text-muted)">{{ c.created_at[:10] }}</td>
+      <td>
+        <form method="POST" action="/connections/{{ c.id }}/delete" style="display:inline">
+          <button type="submit" class="btn-delete"
+                  aria-label="Delete connection {{ c.name }} at {{ c.company }}">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No connections yet. Add one above.</div>
+  {% endif %}
+</main>
+
+<script>
+(function () {
+  const html = document.documentElement;
+  const btn  = document.getElementById('theme-toggle');
+  const KEY  = 'jp-theme';
+  function apply(theme) {
+    html.setAttribute('data-theme', theme);
+    if (btn) {
+      btn.textContent = theme === 'dark' ? '☀' : '🌙';
+      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+  }
+  function init() {
+    const saved = localStorage.getItem(KEY);
+    if (saved) { apply(saved); return; }
+    apply(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+  window.toggleTheme = function () {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    localStorage.setItem(KEY, next);
+    apply(next);
+  };
+  init();
+})();
+</script>
+</body>
+</html>

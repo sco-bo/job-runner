@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Project — keep templates, ignore user files
+profile/profile.yaml
+profile/skills_bank.yaml
+
+# Generated reports and database
+reports/
+*.db
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Logs
+nohup.out
+*.log
+
+# Test/lint cache
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# User config (contains personal locations, search terms)
+config/config.yaml
