@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project purpose
 
-Daily job scraper that fetches remote US Product Management roles, scores them against a local skills bank, and outputs a ranked top-20 digest. All logic is local; no external APIs are called at runtime. The full spec is in [spec/spec.md](spec/spec.md) — read it before making architectural decisions.
+Daily job scraper that fetches listings from configurable sources, scores them against a local skills bank, and outputs a ranked digest. All logic is local; no external APIs are called at runtime. The full spec is in [spec/spec.md](spec/spec.md) — read it before making architectural decisions.
 
 ## Commands
 
@@ -37,7 +37,7 @@ The app is a Python CLI (`job_puller/` package, entry point in `cli.py` via Type
 
 1. **Scraping** — two independent scrapers write to the same SQLite `jobs` table:
    - `scraper.py` wraps JobSpy (LinkedIn/Indeed/Glassdoor)
-   - `tangerine.py` scrapes `tangerinefeed.net/remote/product-manager-jobs/region/US` via JSON-LD (`schema.org/ItemList`) — does NOT scrape HTML. Paginates with `?page=N&sort=recent`, stops when all jobs on a page are older than 24 hours.
+   - `tangerine.py` scrapes a configurable Tangerine Feed URL via JSON-LD (`schema.org/ItemList`) — does NOT scrape HTML. Paginates with `?page=N&sort=recent`, stops when all jobs on a page are older than `hours_old`. Skipped if `base_url` is blank.
 
 2. **Scoring** (`scorer.py`) — pure Python, no API calls. Weighted heuristics: title match (30), skills overlap (30), seniority match (20), salary fit (10), location/remote (10). `avoid_keywords` apply a 0.5× penalty. Skills overlap checks bullet `themes` tags and raw bullet `text` in `skills_bank.yaml`.
 

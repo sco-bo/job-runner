@@ -1,6 +1,6 @@
 # job_puller
 
-A local job scraper, scorer, and tracker. It pulls listings from LinkedIn, Indeed, Tangerine, and PM Job Board, scores each one against your resume and preferences, and serves a live dashboard where you can browse, filter, tailor, and track applications — all without sending your data anywhere.
+A local job scraper, scorer, and tracker. It pulls listings from LinkedIn, Indeed, and optional configurable sources (Tangerine Feed, PM Job Board), scores each one against your resume and preferences, and serves a live dashboard where you can browse, filter, tailor, and track applications — all without sending your data anywhere.
 
 Everything runs on your machine. No external APIs, no cloud storage, no subscriptions.
 
@@ -81,6 +81,9 @@ Controls how jobs are scored against your preferences.
 | `preferred_locations` | On-site locations you'd consider |
 | `avoid_keywords` | Words that trigger a 0.5× score penalty (e.g. "sales", "hardware") |
 | `exclude_title_keywords` | Titles to exclude entirely from results |
+| `prompt_context.role_description` | How you describe yourself in tailor/interview prompts — e.g. `"a Senior Product Manager"` |
+| `prompt_context.tailor_guidance` | List of extra instruction lines appended to the tailor prompt |
+| `prompt_context.interview_guidance` | List of extra instruction lines appended to the interview prep prompt |
 
 ### `profile/skills_bank.yaml`
 
@@ -219,8 +222,8 @@ job_puller/
 ├── job_puller/          # Python package
 │   ├── cli.py           # Typer CLI entry point
 │   ├── scraper.py       # JobSpy wrapper (LinkedIn, Indeed)
-│   ├── tangerine.py     # Tangerine feed scraper
-│   ├── pmjb.py          # productmanagerjobboard.com scraper
+│   ├── tangerine.py     # Tangerine Feed scraper (configurable URL)
+│   ├── pmjb.py          # productmanagerjobboard.com scraper (optional, disable in config)
 │   ├── db.py            # SQLite schema, migrations, queries
 │   ├── scorer.py        # Heuristic 0-100 scorer
 │   ├── ranker.py        # Filter + sort for display

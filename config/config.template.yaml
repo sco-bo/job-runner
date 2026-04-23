@@ -27,16 +27,19 @@ search:
     - "your city"
     - "remote"
 
+# Tangerine Feed: a JSON-LD job board. Set base_url to any Tangerine feed URL for your role/region,
+# or set enabled: false to skip it. Leave base_url blank and the scraper will be skipped automatically.
 tangerine:
-  enabled: true
-  base_url: https://tangerinefeed.net/remote/product-manager-jobs/region/US
+  enabled: false
+  base_url: ""   # e.g. https://tangerinefeed.net/remote/product-manager-jobs/region/US
   sort: recent
   hours_old: 24
   fetch_details: true
   delay_seconds: 1
 
+# PM Job Board (productmanagerjobboard.com). Set enabled: false if not applicable to your search.
 pmjb:
-  enabled: true
+  enabled: false
   hours_old: 24
   fetch_descriptions: true
   delay_seconds: 1.0

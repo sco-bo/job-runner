@@ -323,12 +323,21 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
             f"  - For {role['title']} at {role['company']}: keep {role['max_bullets']} bullets maximum"
         )
 
+    # Load user-defined prompt context from profile.yaml
+    prompt_ctx: dict = {}
+    if _PROFILE_PATH.exists():
+        with open(_PROFILE_PATH) as _f:
+            _profile = yaml.safe_load(_f) or {}
+        prompt_ctx = _profile.get("prompt_context", {})
+    role_description = prompt_ctx.get("role_description", "a job applicant")
+    tailor_guidance: list[str] = prompt_ctx.get("tailor_guidance", [])
+
     lines = [
         "# Context",
-        f"- I'm a Senior Product Manager applying for the role below.",
+        f"- I'm {role_description} applying for the role below.",
         f"- Below is my full master resume, organized by role with every bullet point.",
         f"- You are a hiring manager at {company} reviewing my application for this specific role.",
-        f"- You are well-versed in best practices for tech PM resume writing.",
+        f"- You are well-versed in best practices for resume writing for this type of role.",
         "",
         "# Role",
         f"{title} at {company}",
@@ -338,8 +347,8 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
         description,
         "",
         "# Specific Guidance",
-        "- Before recommending bullets, identify the primary evaluation lens this role uses to assess PM candidates. Do not default to surface-level keyword matching. Common lenses: execution rigor (backlog ownership, sprint ceremonies, delivery), technical depth (APIs, data infrastructure, integrations), growth/revenue (funnel, conversion, retention), compliance/regulatory, customer (discovery, research, NPS). State the lens you identified before making recommendations.",
-        "- Distinguish between skills that are central to the role versus skills that describe the domain the PM will operate in. Domain-specific bullets should only rank above execution bullets when the role is explicitly hiring for that domain as a core competency, not merely operating within it.",
+        "- Before recommending bullets, identify the primary evaluation lens this role uses to assess candidates. Do not default to surface-level keyword matching. State the lens you identified before making recommendations.",
+        "- Distinguish between skills that are central to the role versus skills that describe the domain the candidate will operate in. Domain-specific bullets should only rank above execution bullets when the role is explicitly hiring for that domain as a core competency, not merely operating within it.",
         "- Show only the bullets that should be kept — do not list or mention bullets that are being removed.",
         "- If a bullet could be strengthened with a slight tweak, rewrite it with the change applied, then add a sub-bullet (indented, starting with 'Change:') that briefly explains what was changed and why.",
         "- Never fabricate experience I have not had. Do not add new bullets to the final resume output without my explicit approval — instead, flag the gap and suggest what kind of bullet I could write if I have relevant experience, then ask me to confirm before including it.",
@@ -351,18 +360,19 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
         "- Provide a recommended Professional Summary for this specific role.",
         "- Flag whether the resume would pass ATS, and note any issues.",
         "- Do not mirror the JD language too closely — avoid copy-pasting phrases from the job description.",
-        "- Ensure language reflects the work of a PM, not an engineer.",
         "- Avoid reusing leading verbs and repeating terminology across bullets.",
         "- Do not use em dashes (—), en dashes (–), or double hyphens (--) anywhere in the output. These are hallmarks of LLM-generated writing and must be avoided entirely.",
-        "- On first mention of a point-of-sale system in the resume, write out 'point-of-sale' in full. Use 'POS' for all subsequent mentions.",
         "- Bullet count targets by role:",
-    ] + role_limits + [
+    ] + role_limits + (
+        ["", "# Additional Guidance"] + [f"- {g}" if not g.startswith("-") else g for g in tailor_guidance]
+        if tailor_guidance else []
+    ) + [
         "",
         "# Bullet Audit Checklist",
         "Before producing any bullet in the final output, run this checklist against every bullet individually. Do not skip any step. Do not produce output until all steps are complete for all bullets.",
         "",
         "1. Does this bullet open with a leading verb used by any other bullet in the same role? If yes, replace the verb.",
-        "2. Does the language describe what an engineer built, or what a PM owned and drove? If it reads as engineering work, reframe it around PM actions: defined, prioritized, shaped, launched, partnered, directed.",
+        "2. Is the language outcome-focused and action-driven? Can it be made more concise without losing meaning? If yes, rewrite it.",
         "3. Can any phrase be cut without losing meaning? If yes, cut it.",
         "4. If any of steps 1 through 3 resulted in a change, rewrite the bullet and add an indented sub-bullet starting with 'Change:' that states exactly what was changed and why.",
         "5. If no changes were needed, output the bullet as-is with no sub-bullet.",
@@ -481,9 +491,18 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
     matched_ids = json.loads(raw_ids) if raw_ids else []
     matched_bullets = [bullets_by_id[bid] for bid in matched_ids if bid in bullets_by_id]
 
+    # Load user-defined prompt context from profile.yaml
+    prompt_ctx_iv: dict = {}
+    if _PROFILE_PATH.exists():
+        with open(_PROFILE_PATH) as _f:
+            _profile_iv = yaml.safe_load(_f) or {}
+        prompt_ctx_iv = _profile_iv.get("prompt_context", {})
+    role_description_iv = prompt_ctx_iv.get("role_description", "a job applicant")
+    interview_guidance: list[str] = prompt_ctx_iv.get("interview_guidance", [])
+
     lines = [
         "# Context",
-        f"- I'm a Senior Product Manager interviewing for the role below.",
+        f"- I'm {role_description_iv} interviewing for the role below.",
         f"- You are a senior hiring manager at {company} who has reviewed my resume and is preparing to interview me.",
         f"- Use the job description and my resume bullets below to generate targeted interview prep materials.",
         f"- Search the internet for recent information about {company}: their products, business model, recent news, funding, leadership, and any known challenges or strategic priorities. Use this context to make the questions and talking points more specific and relevant.",
@@ -497,7 +516,7 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "",
         "# What I Need",
         "1. **Likely Interview Questions** — Generate 10-15 questions you'd expect from this company for this role.",
-        "   - Include a mix of: behavioral (STAR-format), situational, technical/PM craft, and culture/values questions.",
+        "   - Include a mix of: behavioral (STAR-format), situational, technical/role-specific, and culture/values questions.",
         "   - Weight questions toward the skills and themes most emphasized in the job description.",
         "",
         "2. **Talking Points per Question** — For each question, provide 2-3 bullet talking points I should hit.",
@@ -513,6 +532,10 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "5. **Watch-outs** — Flag any areas in the JD where my resume has an obvious gap,",
         "   and suggest how I might address or reframe it.",
         "",
+    ] + (
+        ["# Additional Guidance"] + [f"- {g}" if not g.startswith("-") else g for g in interview_guidance] + [""]
+        if interview_guidance else []
+    ) + [
         "# My Resume — Top Matched Bullets for This Role",
         "These are the bullets most relevant to this job description:",
         "",

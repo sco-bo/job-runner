@@ -137,10 +137,9 @@ def scrape(config: dict) -> list[Job]:
     if not tcfg.get("enabled", True):
         return []
 
-    base_url = tcfg.get(
-        "base_url",
-        "https://tangerinefeed.net/remote/product-manager-jobs/region/US",
-    )
+    base_url = tcfg.get("base_url", "")
+    if not base_url:
+        return []
     sort = tcfg.get("sort", "recent")
     hours_old = int(tcfg.get("hours_old", 24))
     fetch_details = tcfg.get("fetch_details", True)

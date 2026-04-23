@@ -108,7 +108,7 @@ def _seniority_score(job_title: str, target_levels: list[str]) -> tuple[float, s
     title_lower = job_title.lower()
     level_keywords = {
         "junior": ["junior", "jr", "associate", "entry"],
-        "mid": ["product manager", "pm "],
+        "mid": [],
         "senior": ["senior", "sr.", "sr ", "staff"],
         "principal": ["principal", "distinguished"],
         "lead": ["lead", "tech lead"],
