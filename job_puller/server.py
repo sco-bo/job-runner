@@ -613,9 +613,12 @@ def interview_adhoc():
 
 @app.route("/connections", methods=["GET"])
 def connections_page():
+    imported = request.args.get("imported", type=int)
+    skipped  = request.args.get("skipped",  type=int)
     with _conn() as conn:
         conns = db.get_connections(conn)
-    return render_template("connections.html.j2", connections=conns)
+    return render_template("connections.html.j2", connections=conns,
+                           imported=imported, skipped=skipped)
 
 
 @app.route("/connections", methods=["POST"])
@@ -628,6 +631,52 @@ def connections_add():
     with _conn() as conn:
         db.add_connection(conn, name, company, position)
     return redirect(url_for("connections_page"))
+
+
+@app.route("/connections/import", methods=["POST"])
+def connections_import():
+    import csv, io
+    f = request.files.get("csv_file")
+    if not f or not f.filename:
+        abort(400)
+
+    stream = io.TextIOWrapper(f.stream, encoding="utf-8-sig")  # handles LinkedIn BOM
+    reader = csv.DictReader(stream)
+
+    with _conn() as conn:
+        existing = {
+            (r["name"].strip().lower(), r["company"].strip().lower())
+            for r in db.get_connections(conn)
+        }
+
+    imported, skipped = 0, 0
+    rows_to_add = []
+
+    for row in reader:
+        first    = (row.get("First Name") or "").strip()
+        last     = (row.get("Last Name") or "").strip()
+        name     = f"{first} {last}".strip()
+        company  = (row.get("Company") or "").strip()
+        position = (row.get("Position") or "").strip() or None
+
+        if not name or not company:
+            skipped += 1
+            continue
+
+        key = (name.lower(), company.lower())
+        if key in existing:
+            skipped += 1
+            continue
+
+        existing.add(key)
+        rows_to_add.append((name, company, position))
+
+    with _conn() as conn:
+        for name, company, position in rows_to_add:
+            db.add_connection(conn, name, company, position, source="linkedin_csv")
+            imported += 1
+
+    return redirect(url_for("connections_page", imported=imported, skipped=skipped))
 
 
 @app.route("/connections/<int:conn_id>/delete", methods=["POST"])
