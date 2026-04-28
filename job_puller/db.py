@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     job_search_id       TEXT,
     description_highlights TEXT,
     state_restricted    INTEGER NOT NULL DEFAULT 0,
-    connection_count    INTEGER NOT NULL DEFAULT 0
+    connection_count    INTEGER NOT NULL DEFAULT 0,
+    is_saved            INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS connections (
@@ -111,6 +112,8 @@ def init_db(db_path: Path) -> None:
             conn.execute("ALTER TABLE jobs ADD COLUMN state_restricted INTEGER NOT NULL DEFAULT 0")
         if "connection_count" not in cols:
             conn.execute("ALTER TABLE jobs ADD COLUMN connection_count INTEGER NOT NULL DEFAULT 0")
+        if "is_saved" not in cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0")
         # connections table (CREATE IF NOT EXISTS handles new DBs; existing DBs get it here)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS connections (
@@ -293,6 +296,22 @@ def delete_connection(conn: sqlite3.Connection, connection_id: int) -> None:
 
 def get_connections(conn: sqlite3.Connection) -> list:
     return conn.execute("SELECT * FROM connections ORDER BY company, name").fetchall()
+
+
+def toggle_saved(conn: sqlite3.Connection, job_id: int) -> bool:
+    """Flip is_saved for a job. Returns the new saved state."""
+    new_val = conn.execute(
+        "UPDATE jobs SET is_saved = CASE WHEN is_saved = 1 THEN 0 ELSE 1 END WHERE id = ? RETURNING is_saved",
+        (job_id,)
+    ).fetchone()[0]
+    return bool(new_val)
+
+
+def get_saved_jobs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """All saved jobs, ordered by score desc."""
+    return conn.execute(
+        "SELECT * FROM jobs WHERE is_saved = 1 ORDER BY score DESC NULLS LAST"
+    ).fetchall()
 
 
 def update_connection_count(conn: sqlite3.Connection, job_id: int, count: int) -> None:

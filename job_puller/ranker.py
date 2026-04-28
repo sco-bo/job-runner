@@ -27,6 +27,7 @@ class RankedJob:
     description_highlights: list[str]
     state_restricted: bool = False
     connection_count: int = 0
+    is_saved: bool = False
 
 
 def _row_to_ranked(row: sqlite3.Row) -> RankedJob:
@@ -54,6 +55,7 @@ def _row_to_ranked(row: sqlite3.Row) -> RankedJob:
         description_highlights=json.loads(row["description_highlights"]) if row["description_highlights"] else [],
         state_restricted=bool(row["state_restricted"]) if "state_restricted" in row.keys() else False,
         connection_count=row["connection_count"] if "connection_count" in row.keys() else 0,
+        is_saved=bool(row["is_saved"]) if "is_saved" in row.keys() else False,
     )
 
 
@@ -133,7 +135,29 @@ def get_top_jobs(
             results.append(job)
             seen_ids.add(job.id)
 
+    # Always show all manually-added jobs regardless of score or top_n cutoff
+    manual_rows = conn.execute(
+        """
+        SELECT * FROM jobs
+        WHERE site = 'manual' AND status IS NULL
+        ORDER BY score DESC NULLS LAST
+        """
+    ).fetchall()
+    for r in manual_rows:
+        job = _row_to_ranked(r)
+        if job.id not in seen_ids:
+            results.append(job)
+            seen_ids.add(job.id)
+
     return results
+
+
+def get_saved_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
+    """Return all saved jobs, ordered by score desc."""
+    rows = conn.execute(
+        "SELECT * FROM jobs WHERE is_saved = 1 ORDER BY score DESC NULLS LAST"
+    ).fetchall()
+    return [_row_to_ranked(r) for r in rows]
 
 
 def get_applied_jobs(conn: sqlite3.Connection) -> list[RankedJob]:

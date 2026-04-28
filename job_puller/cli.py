@@ -246,7 +246,7 @@ def job_status(
 
 @app.command()
 def serve(
-    port: int = typer.Option(5000, "--port", "-p", help="Port to listen on."),
+    port: int = typer.Option(5001, "--port", "-p", help="Port to listen on."),
     no_browser: bool = typer.Option(False, "--no-browser", help="Don't open browser automatically."),
 ) -> None:
     """Start the local job browser UI at http://localhost:<port>."""
@@ -274,7 +274,7 @@ def serve(
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
 
     typer.echo(f"Starting job browser at {url} — press Ctrl+C to stop.")
-    flask_app.run(host="127.0.0.1", port=port, debug=False)
+    flask_app.run(host="0.0.0.0", port=port, debug=False)
 
 
 @app.command()

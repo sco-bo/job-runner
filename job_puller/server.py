@@ -214,6 +214,7 @@ def index():
             conn, app.config.get("TOP_N", 20), exclude_kw, run_id=run_id_param
         )
         applied_jobs = ranker.get_applied_jobs(conn)
+        saved_jobs = ranker.get_saved_jobs(conn)
         dismissed_jobs = db.get_dismissed_jobs(conn)
         stats = db.get_run_stats(conn)
 
@@ -223,6 +224,7 @@ def index():
         "dashboard.html.j2",
         top_jobs=top_jobs,
         applied_jobs=applied_jobs,
+        saved_jobs=saved_jobs,
         dismissed_jobs=dismissed_jobs,
         stats=stats,
         skills_bank_bullets=_build_bullets_map(skills_bank),
@@ -686,6 +688,16 @@ def connections_delete(conn_id: int):
     return redirect(url_for("connections_page"))
 
 
+@app.route("/job/<int:job_id>/save", methods=["POST"])
+def toggle_save(job_id: int):
+    from flask import jsonify
+    with _conn() as conn:
+        is_saved = db.toggle_saved(conn, job_id)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"is_saved": is_saved})
+    return redirect(request.referrer or url_for("index"))
+
+
 @app.route("/job/<int:job_id>/status", methods=["POST"])
 def set_status(job_id: int):
     new_status = request.form.get("status", "")
@@ -701,6 +713,8 @@ def set_status(job_id: int):
         if row is None:
             abort(404)
         db.update_status(conn, job_id, resolved)
+        if resolved == "applied":
+            conn.execute("UPDATE jobs SET is_saved = 0 WHERE id = ?", (job_id,))
 
     if resolved == "applied":
         _push_to_job_search(job_id, row)

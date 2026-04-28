@@ -190,6 +190,12 @@
   [data-theme="dark"] .btn.restore:hover { background: #1e3a5f; }
   [data-theme="dark"] .btn.view { border-color: #3730a3; color: #a5b4fc; }
   [data-theme="dark"] .btn.view:hover { background: #1e1b4b; }
+  .btn.save        { border-color: #d97706; color: #92400e; }
+  .btn.save:hover  { background: #fef3c7; }
+  .btn.save.saved  { border-color: #d97706; background: #fef3c7; color: #92400e; font-weight: 700; }
+  [data-theme="dark"] .btn.save       { border-color: #92400e; color: #fcd34d; }
+  [data-theme="dark"] .btn.save:hover { background: #451a03; }
+  [data-theme="dark"] .btn.save.saved { background: #451a03; color: #fcd34d; font-weight: 700; }
   [data-theme="dark"] .btn.tailor { border-color: #065f46; color: #6ee7b7; }
   [data-theme="dark"] .btn.tailor:hover { background: #022c22; }
 
@@ -340,6 +346,12 @@
     {% endfor %}
   </select>
   {% endif %}
+
+  <span class="filter-sep" aria-hidden="true"></span>
+  <div class="filter-tabs" id="connections-tabs" role="tablist" aria-label="Filter by connections">
+    <div class="tab" role="tab" tabindex="0" aria-selected="true"  data-connections="all" onclick="setTab(this,'connections-tabs')" onkeydown="tabKey(event,this,'connections-tabs')">All</div>
+    <div class="tab" role="tab" tabindex="0" aria-selected="false" data-connections="yes" onclick="setTab(this,'connections-tabs')" onkeydown="tabKey(event,this,'connections-tabs')">⬡ With connection</div>
+  </div>
 </nav>
 
 <!-- Main -->
@@ -360,6 +372,7 @@
        data-source="{{ job.site }}"
        data-theme="{{ job.recommended_summary or '' }}"
        data-industry="{{ job.industry or '' }}"
+       data-connections="{{ job.connection_count or 0 }}"
        aria-label="{{ job.title }} at {{ job.company }}, score {{ job.score|int }}">
 
     <div class="card-top">
@@ -411,6 +424,12 @@
 
     <div class="actions">
       {% if is_server %}
+      <button class="btn save {% if job.is_saved %}saved{% endif %}"
+              data-job-id="{{ job.id }}" data-saved="{{ 'true' if job.is_saved else 'false' }}"
+              onclick="toggleSave(this)"
+              aria-label="{% if job.is_saved %}Unsave{% else %}Save{% endif %} {{ job.title }} at {{ job.company }}">
+        {% if job.is_saved %}★ Saved{% else %}☆ Save{% endif %}
+      </button>
       <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
         <input type="hidden" name="status" value="applied">
         <button type="submit" class="btn apply"
@@ -432,6 +451,48 @@
   <p style="color:var(--text-muted);padding:20px 0">No scored jobs found. Run <code>job-puller run</code> first.</p>
   {% endfor %}
   </div>
+
+  <!-- Saved section -->
+  {% if saved_jobs %}
+  <h2 class="section-title" style="margin-top:40px">Saved ({{ saved_jobs|length }})</h2>
+  <div class="cards" role="list">
+  {% for job in saved_jobs %}
+  <article class="card" role="listitem" aria-label="{{ job.title }} at {{ job.company }}, saved">
+    <div class="card-top">
+      <div class="score {{ 'high' if job.score >= 80 else ('mid' if job.score >= 60 else 'low') }}"
+           aria-label="Score: {{ job.score|int if job.score else 'unscored' }}">
+        {{ job.score|int if job.score else "–" }}
+      </div>
+      <div class="card-title">
+        <h3>{{ job.title }}</h3>
+        <div class="company">{{ job.company }}</div>
+      </div>
+    </div>
+    <div class="badges">
+      <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #d97706">★ Saved</span>
+      {% if job.is_remote %}<span class="badge remote">Remote</span>{% endif %}
+      <span class="badge {{ 'manual' if job.site == 'manual' else ('pmjb' if job.site == 'pmjb' else 'site') }}">{{ job.site }}</span>
+      {% if job.connection_count > 0 %}<span class="badge connections" title="{{ job.connection_count }} connection{{ 's' if job.connection_count != 1 else '' }} at this company">👤 {{ job.connection_count }}</span>{% endif %}
+    </div>
+    <div class="actions">
+      {% if is_server %}
+      <button class="btn save saved"
+              data-job-id="{{ job.id }}" data-saved="true"
+              onclick="toggleSave(this)"
+              aria-label="Unsave {{ job.title }} at {{ job.company }}">★ Saved</button>
+      <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
+        <input type="hidden" name="status" value="applied">
+        <button type="submit" class="btn apply" aria-label="Mark as applied">Apply ✓</button>
+      </form>
+      <a href="/job/{{ job.id }}/tailor" class="btn tailor">Tailor ✦</a>
+      {% endif %}
+      <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn view"
+         aria-label="View {{ job.title }} posting (opens in new tab)">View job ↗</a>
+    </div>
+  </article>
+  {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- Applied section -->
   {% if applied_jobs %}
@@ -543,18 +604,20 @@
 })();
 
 // --- Filter state ---
-let activeSource   = 'all';
-let activeTheme    = 'all';
-let activeIndustry = 'all';
+let activeSource      = 'all';
+let activeTheme       = 'all';
+let activeIndustry    = 'all';
+let activeConnections = 'all';
 
 function applyFilters() {
   const q = document.getElementById('search').value.toLowerCase();
   document.querySelectorAll('#job-cards .card').forEach(card => {
-    const matchSearch   = !q || card.dataset.title.includes(q) || card.dataset.company.includes(q);
-    const matchSource   = activeSource   === 'all' || card.dataset.source   === activeSource;
-    const matchTheme    = activeTheme    === 'all' || card.dataset.theme     === activeTheme;
-    const matchIndustry = activeIndustry === 'all' || card.dataset.industry  === activeIndustry;
-    card.classList.toggle('hidden', !(matchSearch && matchSource && matchTheme && matchIndustry));
+    const matchSearch      = !q || card.dataset.title.includes(q) || card.dataset.company.includes(q);
+    const matchSource      = activeSource      === 'all' || card.dataset.source   === activeSource;
+    const matchTheme       = activeTheme       === 'all' || card.dataset.theme    === activeTheme;
+    const matchIndustry    = activeIndustry    === 'all' || card.dataset.industry === activeIndustry;
+    const matchConnections = activeConnections === 'all' || parseInt(card.dataset.connections) > 0;
+    card.classList.toggle('hidden', !(matchSearch && matchSource && matchTheme && matchIndustry && matchConnections));
   });
 }
 
@@ -563,9 +626,10 @@ function setTab(el, groupId) {
     t.setAttribute('aria-selected', 'false');
   });
   el.setAttribute('aria-selected', 'true');
-  if      (groupId === 'source-tabs')   activeSource   = el.dataset.source;
-  else if (groupId === 'industry-tabs') activeIndustry = el.dataset.industry;
-  else                                  activeTheme    = el.dataset.theme;
+  if      (groupId === 'source-tabs')      activeSource      = el.dataset.source;
+  else if (groupId === 'industry-tabs')    activeIndustry    = el.dataset.industry;
+  else if (groupId === 'connections-tabs') activeConnections = el.dataset.connections;
+  else                                     activeTheme       = el.dataset.theme;
   applyFilters();
 }
 
@@ -574,6 +638,20 @@ function tabKey(e, el, groupId) {
 }
 
 // --- Dismissed toggle ---
+function toggleSave(btn) {
+  const jobId = btn.dataset.jobId;
+  fetch(`/job/${jobId}/save`, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  }).then(r => r.json()).then(data => {
+    const saved = data.is_saved;
+    btn.dataset.saved = saved ? 'true' : 'false';
+    btn.textContent = saved ? '★ Saved' : '☆ Save';
+    btn.classList.toggle('saved', saved);
+    btn.setAttribute('aria-label', (saved ? 'Unsave' : 'Save') + ' this job');
+  }).catch(() => location.reload());
+}
+
 function toggleDismissed() {
   const rows   = document.getElementById('dismissed-rows');
   const arrow  = document.getElementById('dismissed-arrow');

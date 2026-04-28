@@ -57,6 +57,14 @@ def _extract_salary_from_text(text: str) -> tuple[Optional[float], Optional[floa
         return None, None
 
 
+def _clean(val: Any) -> str:
+    """Convert a pandas cell to str, treating NaN/None/empty as empty string."""
+    if val is None:
+        return ""
+    s = str(val).strip()
+    return "" if s.lower() == "nan" else s
+
+
 def _to_float(val: Any) -> Optional[float]:
     try:
         return float(val) if val is not None else None
@@ -220,12 +228,12 @@ def scrape(config: dict) -> list[Job]:
 
                 jobs.append(Job(
                     url=url,
-                    title=str(row.get("title") or "").strip(),
-                    company=str(row.get("company") or "").strip(),
-                    location=str(row.get("location") or "").strip(),
-                    site=str(row.get("site") or "").strip(),
+                    title=_clean(row.get("title")),
+                    company=_clean(row.get("company")),
+                    location=_clean(row.get("location")),
+                    site=_clean(row.get("site")),
                     is_remote=bool(row.get("is_remote", False)),
-                    job_type=str(row.get("job_type") or "").strip() or None,
+                    job_type=_clean(row.get("job_type")) or None,
                     description=description,
                     salary_min=salary_min,
                     salary_max=salary_max,
