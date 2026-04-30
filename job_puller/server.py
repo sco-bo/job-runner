@@ -217,6 +217,13 @@ def index():
         saved_jobs = ranker.get_saved_jobs(conn)
         dismissed_jobs = db.get_dismissed_jobs(conn)
         stats = db.get_run_stats(conn)
+        all_connections = db.get_connections(conn)
+
+    connections_by_company: dict[str, list[str]] = {}
+    for c in all_connections:
+        key = (c["company"] or "").strip().lower()
+        if key:
+            connections_by_company.setdefault(key, []).append(c["name"])
 
     skills_bank: dict = app.config.get("SKILLS_BANK", {})
 
@@ -232,6 +239,7 @@ def index():
         generated_at=None,
         runs=runs,
         selected_run_id=run_id_param,
+        connections_by_company=connections_by_company,
     )
 
 
@@ -377,7 +385,7 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
         "2. Is the language outcome-focused and action-driven? Can it be made more concise without losing meaning? If yes, rewrite it.",
         "3. Can any phrase be cut without losing meaning? If yes, cut it.",
         "4. If any of steps 1 through 3 resulted in a change, rewrite the bullet and add an indented sub-bullet starting with 'Change:' that states exactly what was changed and why.",
-        "5. If no changes were needed, output the bullet as-is with no sub-bullet.",
+        "5. If no changes were needed, output the bullet exactly as written with no sub-bullet, no annotation, and no commentary of any kind. Do not write 'Change: No changes needed', 'Change: Passes all steps', or any variation. Silence is the correct and complete output for an unchanged bullet.",
         "",
         "Treat this checklist as a hard requirement. A bullet that passes through unreviewed is a failure condition, not a default.",
         "",

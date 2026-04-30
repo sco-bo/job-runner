@@ -398,8 +398,9 @@
         <span class="badge industry">{{ job.industry }}</span>
       {% endif %}
       {% if job.connection_count > 0 %}
+        {% set conn_names = connections_by_company.get(job.company | lower, []) %}
         <span class="badge connections"
-              title="{{ job.connection_count }} connection{{ 's' if job.connection_count != 1 else '' }} at this company">
+              title="{{ conn_names | join(', ') if conn_names else (job.connection_count ~ ' connection' ~ ('s' if job.connection_count != 1 else '') ~ ' at this company') }}">
           👤 {{ job.connection_count }}</span>
       {% endif %}
       {% if job.state_restricted %}
@@ -472,7 +473,7 @@
       <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #d97706">★ Saved</span>
       {% if job.is_remote %}<span class="badge remote">Remote</span>{% endif %}
       <span class="badge {{ 'manual' if job.site == 'manual' else ('pmjb' if job.site == 'pmjb' else 'site') }}">{{ job.site }}</span>
-      {% if job.connection_count > 0 %}<span class="badge connections" title="{{ job.connection_count }} connection{{ 's' if job.connection_count != 1 else '' }} at this company">👤 {{ job.connection_count }}</span>{% endif %}
+      {% if job.connection_count > 0 %}{% set conn_names = connections_by_company.get(job.company | lower, []) %}<span class="badge connections" title="{{ conn_names | join(', ') if conn_names else (job.connection_count ~ ' connection' ~ ('s' if job.connection_count != 1 else '') ~ ' at this company') }}">👤 {{ job.connection_count }}</span>{% endif %}
     </div>
     <div class="actions">
       {% if is_server %}
@@ -485,6 +486,7 @@
         <button type="submit" class="btn apply" aria-label="Mark as applied">Apply ✓</button>
       </form>
       <a href="/job/{{ job.id }}/tailor" class="btn tailor">Tailor ✦</a>
+      <a href="/job/{{ job.id }}/interview" class="btn tailor">Interview ✦</a>
       {% endif %}
       <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn view"
          aria-label="View {{ job.title }} posting (opens in new tab)">View job ↗</a>
@@ -521,6 +523,8 @@
         <button type="submit" class="btn restore"
                 aria-label="Restore {{ job.title }} at {{ job.company }} to active">Restore</button>
       </form>
+      <a href="/job/{{ job.id }}/tailor" class="btn tailor">Tailor ✦</a>
+      <a href="/job/{{ job.id }}/interview" class="btn tailor">Interview ✦</a>
       {% endif %}
       <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" class="btn view"
          aria-label="View {{ job.title }} posting (opens in new tab)">View job ↗</a>
