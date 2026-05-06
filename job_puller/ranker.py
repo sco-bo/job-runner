@@ -135,21 +135,15 @@ def get_top_jobs(
             results.append(job)
             seen_ids.add(job.id)
 
-    # Always show all manually-added jobs regardless of score or top_n cutoff
-    manual_rows = conn.execute(
-        """
-        SELECT * FROM jobs
-        WHERE site = 'manual' AND status IS NULL
-        ORDER BY score DESC NULLS LAST
-        """
-    ).fetchall()
-    for r in manual_rows:
-        job = _row_to_ranked(r)
-        if job.id not in seen_ids:
-            results.append(job)
-            seen_ids.add(job.id)
-
     return results
+
+
+def get_manual_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
+    """Return all manually-added active jobs, ordered by score desc."""
+    rows = conn.execute(
+        "SELECT * FROM jobs WHERE site = 'manual' AND status IS NULL ORDER BY score DESC NULLS LAST"
+    ).fetchall()
+    return [_row_to_ranked(r) for r in rows]
 
 
 def get_saved_jobs(conn: sqlite3.Connection) -> list[RankedJob]:

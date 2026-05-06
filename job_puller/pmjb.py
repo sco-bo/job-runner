@@ -149,10 +149,8 @@ def _fetch_description(url: str, session: requests.Session) -> Optional[str]:
         parts = [about.get_text(strip=True)]
         for sibling in about.find_next_siblings():
             parts.append(sibling.get_text("\n", strip=True))
-        return "\n".join(parts)[:5000]
-
-    return main.get_text("\n", strip=True)[:5000]
-
+        return "\n".join(parts)
+    return main.get_text("\n", strip=True)
 
 def scrape(config: dict) -> list[Job]:
     """Scrape productmanagerjobboard.com and return Job objects ≤ hours_old."""

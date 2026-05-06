@@ -204,20 +204,35 @@ def _exclude_keywords() -> list[str]:
 
 @app.route("/")
 def index():
+    view = request.args.get("view", "runs")
+    if view not in ("runs", "saved", "manual", "applied"):
+        view = "runs"
     exclude_kw = _exclude_keywords()
-
     run_id_param = request.args.get("run", type=int)
 
     with _conn() as conn:
         runs = get_runs(conn)
-        top_jobs = ranker.get_top_jobs(
-            conn, app.config.get("TOP_N", 20), exclude_kw, run_id=run_id_param
-        )
-        applied_jobs = ranker.get_applied_jobs(conn)
-        saved_jobs = ranker.get_saved_jobs(conn)
-        dismissed_jobs = db.get_dismissed_jobs(conn)
         stats = db.get_run_stats(conn)
         all_connections = db.get_connections(conn)
+        saved_count   = conn.execute("SELECT COUNT(*) FROM jobs WHERE is_saved = 1").fetchone()[0]
+        manual_count  = conn.execute("SELECT COUNT(*) FROM jobs WHERE site = 'manual' AND status IS NULL").fetchone()[0]
+        applied_count = conn.execute("SELECT COUNT(*) FROM jobs WHERE status = 'applied'").fetchone()[0]
+
+        if view == "saved":
+            jobs = ranker.get_saved_jobs(conn)
+            top_jobs = dismissed_jobs = []
+        elif view == "manual":
+            jobs = ranker.get_manual_jobs(conn)
+            top_jobs = dismissed_jobs = []
+        elif view == "applied":
+            jobs = ranker.get_applied_jobs(conn)
+            top_jobs = dismissed_jobs = []
+        else:
+            top_jobs = ranker.get_top_jobs(
+                conn, app.config.get("TOP_N", 20), exclude_kw, run_id=run_id_param
+            )
+            dismissed_jobs = db.get_dismissed_jobs(conn)
+            jobs = []
 
     connections_by_company: dict[str, list[str]] = {}
     for c in all_connections:
@@ -229,9 +244,9 @@ def index():
 
     return render_template(
         "dashboard.html.j2",
+        view=view,
         top_jobs=top_jobs,
-        applied_jobs=applied_jobs,
-        saved_jobs=saved_jobs,
+        jobs=jobs,
         dismissed_jobs=dismissed_jobs,
         stats=stats,
         skills_bank_bullets=_build_bullets_map(skills_bank),
@@ -240,6 +255,9 @@ def index():
         runs=runs,
         selected_run_id=run_id_param,
         connections_by_company=connections_by_company,
+        saved_count=saved_count,
+        manual_count=manual_count,
+        applied_count=applied_count,
     )
 
 
@@ -488,7 +506,7 @@ def tailor_adhoc():
 
 
 def _build_interview_prompt(job_row, skills_bank: dict) -> str:
-    """Assemble a ready-to-paste Claude.ai interview prep prompt."""
+    """Assemble a ready-to-paste interview prep prompt."""
     import json
 
     title = job_row["title"] or ""

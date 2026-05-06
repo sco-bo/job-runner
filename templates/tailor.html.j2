@@ -78,7 +78,7 @@
     </div>
   </div>
 
-  <div class="section-label">Ready-to-paste Claude.ai prompt</div>
+  <div class="section-label">Ready-to-paste prompt</div>
   <div class="prompt-box">
     <textarea id="prompt-text" readonly>{{ prompt }}</textarea>
   </div>
@@ -97,7 +97,7 @@
   </div>
 
   <p class="hint" style="margin-top:16px">
-    Paste this into <a href="https://claude.ai" target="_blank">claude.ai</a>.
+    Paste this into your LLM of choice.
     {% if job.recommended_summary %}Recommended summary variant: <strong>{{ job.recommended_summary }}</strong>.{% endif %}
   </p>
 

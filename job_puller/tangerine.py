@@ -127,7 +127,7 @@ def _parse_description(soup: BeautifulSoup) -> Optional[str]:
     for selector in ["article", "main", "[class*='description']", "[class*='content']"]:
         el = soup.select_one(selector)
         if el:
-            return el.get_text("\n", strip=True)[:5000]
+            return el.get_text("\n", strip=True)
     return None
 
 
