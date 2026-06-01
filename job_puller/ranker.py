@@ -139,17 +139,17 @@ def get_top_jobs(
 
 
 def get_manual_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
-    """Return all manually-added active jobs, ordered by score desc."""
+    """Return all manually-added active jobs, ordered by date added desc then score desc."""
     rows = conn.execute(
-        "SELECT * FROM jobs WHERE site = 'manual' AND status IS NULL ORDER BY score DESC NULLS LAST"
+        "SELECT * FROM jobs WHERE site = 'manual' AND status IS NULL ORDER BY date_posted DESC NULLS LAST, score DESC NULLS LAST"
     ).fetchall()
     return [_row_to_ranked(r) for r in rows]
 
 
 def get_saved_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
-    """Return all saved jobs, ordered by score desc."""
+    """Return all saved jobs, ordered by run date desc then score desc."""
     rows = conn.execute(
-        "SELECT * FROM jobs WHERE is_saved = 1 ORDER BY score DESC NULLS LAST"
+        "SELECT * FROM jobs WHERE is_saved = 1 ORDER BY first_seen_run DESC NULLS LAST, score DESC NULLS LAST"
     ).fetchall()
     return [_row_to_ranked(r) for r in rows]
 

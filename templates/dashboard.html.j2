@@ -520,6 +520,7 @@
               title="{{ conn_names | join(', ') if conn_names else (job.connection_count ~ ' connection' ~ ('s' if job.connection_count != 1 else '') ~ ' at this company') }}">
           👤 {{ job.connection_count }}</span>
       {% endif %}
+      {% if job.first_seen_run and job.first_seen_run in run_date_map %}<span class="badge fetched">fetched {{ run_date_map[job.first_seen_run] }}</span>{% endif %}
     </div>
     {% if job.score_rationale %}<div class="rationale">{{ job.score_rationale[:120] }}</div>{% endif %}
     {% if job.description_highlights %}

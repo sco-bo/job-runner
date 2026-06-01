@@ -15,7 +15,7 @@ from flask import Flask, abort, redirect, render_template, request, url_for
 
 from job_puller import (
     connections, db, industry_classifier, location_flags, pmjb,
-    ranker, resume_matcher, scorer, scraper, tangerine,
+    ranker, resume_matcher, scorer, scraper, tangerine, watchlist,
 )
 from job_puller.db import get_runs
 from job_puller.reporter import _build_bullets_map
@@ -43,7 +43,7 @@ _run_lock  = threading.Lock()
 class _SSELogHandler(logging.Handler):
     _WATCHED = [
         "job_puller.scraper", "job_puller.tangerine", "job_puller.pmjb",
-        "job_puller.scorer", "job_puller.resume_matcher",
+        "job_puller.watchlist", "job_puller.scorer", "job_puller.resume_matcher",
         "job_puller.industry_classifier", "job_puller.location_flags",
     ]
 
@@ -115,6 +115,15 @@ def _pipeline_worker() -> None:
         jobs_fetched += len(pmjb_jobs)
         with db.connect(db_path) as conn:
             for job in pmjb_jobs:
+                if db.upsert_job(conn, job, run_id):
+                    jobs_new += 1
+
+        # Watchlist (Lever/Ashby from connections)
+        _put("stage", {"stage": "watchlist", "label": "Scraping Watchlist…"})
+        wl_jobs = watchlist.scrape(config)
+        jobs_fetched += len(wl_jobs)
+        with db.connect(db_path) as conn:
+            for job in wl_jobs:
                 if db.upsert_job(conn, job, run_id):
                     jobs_new += 1
 
@@ -374,6 +383,15 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
         "# Job Description",
         description,
         "",
+        "# Required: Evaluation Lens Identification",
+        "Before reviewing any bullets or producing any output, identify and state the primary evaluation lens this role uses to assess candidates. Complete this block first. Your entire subsequent analysis — bullet selection, ranking, summary choice, and misframe detection — must be filtered through the lens you state here. Do not skip or defer this step.",
+        "",
+        "Evaluation Lens: [state the primary lens]",
+        "Why: [one sentence explaining which signals in the JD led you to this conclusion]",
+        "Secondary lens (if any): [or 'none']",
+        "",
+        "Common lenses: execution and delivery rigor | technical depth | growth and revenue impact | customer discovery and research | AI fluency and workflow building | GTM and storytelling | compliance and regulatory depth",
+        "",
         "# Specific Guidance",
         "- Before recommending bullets, identify the primary evaluation lens this role uses to assess candidates. Do not default to surface-level keyword matching. State the lens you identified before making recommendations.",
         "- Distinguish between skills that are central to the role versus skills that describe the domain the candidate will operate in. Domain-specific bullets should only rank above execution bullets when the role is explicitly hiring for that domain as a core competency, not merely operating within it.",
@@ -433,11 +451,37 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
         lines += [
             "",
             "# Resume Matcher — Top Recommended Bullets for This Role",
-            "The tool flagged these as most relevant based on job description themes. Use as a starting point.",
+            "WARNING: These bullets were ranked by keyword and theme overlap only. This ranking does NOT reflect the evaluation lens and may elevate domain-context bullets above execution bullets. Do not treat this list as authoritative.",
+            "",
+            "Before using any bullet below, annotate it with one of: strong fit | partial fit | potential misframe. For any bullet marked potential misframe, state why the framing is a mismatch for this role (not just this domain) and whether it should be reframed or omitted. A bullet with strong numbers that frames the candidate as the wrong type of PM must be flagged, not surfaced silently.",
+            "",
+            "If these bullets do not fully serve the evaluation lens you identified above, select additional or replacement bullets from the Master Resume section — do not limit yourself to this list.",
             "",
         ]
         for i, text in enumerate(matched_bullets, 1):
             lines.append(f"{i}. {text}")
+
+    lines += [
+        "",
+        "---",
+        "BEGIN PROMPT FEEDBACK — OUTPUT THIS SECTION",
+        "# PROMPT FEEDBACK SECTION",
+        "You are now producing this section — it is not an instruction to follow during resume tailoring.",
+        "After outputting the tailored resume above, append this section below the '---' delimiter.",
+        "Do not include this feedback in the resume itself.",
+        "",
+        "Critique ONLY the prompt's structure and instructions — not the candidate's qualifications or resume quality.",
+        "",
+        "Address each:",
+        "1. Missing instructions: What did you have to infer that should have been explicit?",
+        "2. Conflicting instructions: What guidance pulled in opposite directions?",
+        "3. Assumptions: What did this prompt assume you knew about the experience format?",
+        "4. Over/under-specification: What was too vague or too rigid?",
+        "5. Edge cases or failure modes: What scenarios produce wrong or broken output?",
+        "6. Top one-line fix: The single change that would most improve this prompt.",
+        "",
+        "Keep each to 1-2 sentences. Be direct and specific. Avoid vague praise.",
+    ]
 
     return "\n".join(lines)
 
@@ -546,6 +590,7 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "1. **Likely Interview Questions** — Generate 10-15 questions you'd expect from this company for this role.",
         "   - Include a mix of: behavioral (STAR-format), situational, technical/role-specific, and culture/values questions.",
         "   - Weight questions toward the skills and themes most emphasized in the job description.",
+        "   - For each question, include one sentence explaining why an interviewer asks it and what signal they are looking for in the response.",
         "",
         "2. **Talking Points per Question** — For each question, provide 2-3 bullet talking points I should hit.",
         "   - Ground them in the resume bullets below where possible.",

@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 import yaml
 
-from job_puller import connections, db, industry_classifier, location_flags, pmjb, ranker, reporter, resume_matcher, scraper, scorer, tangerine
+from job_puller import connections, db, industry_classifier, location_flags, pmjb, ranker, reporter, resume_matcher, scraper, scorer, tangerine, watchlist
 
 app = typer.Typer(help="Daily job scraper and ranker.", add_completion=False)
 
@@ -106,6 +106,14 @@ def run(
     jobs_fetched += len(pmjb_jobs)
     with db.connect(db_path) as conn:
         for job in pmjb_jobs:
+            if db.upsert_job(conn, job, run_id):
+                jobs_new += 1
+
+    # --- Watchlist (Lever/Ashby from connections) ---
+    wl_jobs = watchlist.scrape(config)
+    jobs_fetched += len(wl_jobs)
+    with db.connect(db_path) as conn:
+        for job in wl_jobs:
             if db.upsert_job(conn, job, run_id):
                 jobs_new += 1
 
