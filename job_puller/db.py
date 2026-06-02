@@ -114,6 +114,8 @@ def init_db(db_path: Path) -> None:
             conn.execute("ALTER TABLE jobs ADD COLUMN connection_count INTEGER NOT NULL DEFAULT 0")
         if "is_saved" not in cols:
             conn.execute("ALTER TABLE jobs ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0")
+        if "applied_at" not in cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN applied_at TEXT")
         # connections table (CREATE IF NOT EXISTS handles new DBs; existing DBs get it here)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS connections (

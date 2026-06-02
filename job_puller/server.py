@@ -453,7 +453,7 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
             "# Resume Matcher — Top Recommended Bullets for This Role",
             "WARNING: These bullets were ranked by keyword and theme overlap only. This ranking does NOT reflect the evaluation lens and may elevate domain-context bullets above execution bullets. Do not treat this list as authoritative.",
             "",
-            "Before using any bullet below, annotate it with one of: strong fit | partial fit | potential misframe. For any bullet marked potential misframe, state why the framing is a mismatch for this role (not just this domain) and whether it should be reframed or omitted. A bullet with strong numbers that frames the candidate as the wrong type of PM must be flagged, not surfaced silently.",
+            "Before using any bullet below, classify it silently as strong fit, partial fit, or potential misframe — do not include these labels in your output. For any bullet you classify as potential misframe, surface that flag explicitly: state why the framing is a mismatch for this role (not just this domain) and whether it should be reframed or omitted. A bullet with strong numbers that frames the candidate as the wrong type of PM must be flagged, not surfaced silently.",
             "",
             "If these bullets do not fully serve the evaluation lens you identified above, select additional or replacement bullets from the Master Resume section — do not limit yourself to this list.",
             "",
@@ -462,6 +462,60 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
             lines.append(f"{i}. {text}")
 
     lines += [
+        "",
+        "# Human Voice Review — Required Before Presenting Output",
+        "",
+        "Before presenting any output, scan every bullet and summary sentence against this checklist.",
+        "If you rewrite anything, note it explicitly: show the original and the revised version so the candidate can review the change.",
+        "",
+        "**Word-level — hard ban (replace any instance found):**",
+        "leverage/leveraged, utilize/utilized, spearhead/spearheaded, facilitate (catch-all), streamline/streamlined,",
+        "enhance/enhancing, enable/enabling, empower/empowering, foster/fostering, elevate, amplify, augment,",
+        "unlock, unleash, innovative/innovation, cutting-edge, groundbreaking, transformative/transformation,",
+        "dynamic, holistic/holistically, robust (generic), scalable (generic), seamless, pivotal, paramount,",
+        "impactful, vital/essential/crucial/critical (as filler), significant/significantly (vague),",
+        "cross-functional, stakeholder alignment, data-driven (generic), customer-centric, synergy,",
+        "thought leadership, best practices, deep dive, actionable insights, paradigm, landscape (metaphorical),",
+        "realm, game-changer, moving forward, going forward, in order to, it is worth noting, as such,",
+        "fundamentally/ultimately (as filler), adept, cognizant, nuanced (overused), tapestry, kaleidoscope,",
+        "treasure trove, linchpin, foray, drive/drove/driven (generic PM verb), various/numerous/vast (vague quantity)",
+        "",
+        "**Word-level — previously required (confirm compliance):**",
+        "- No em dashes (—), en dashes (–), or double hyphens (--)",
+        "- No 'not X, but Y' or 'not just X, but Y' constructions",
+        "",
+        "**Structure check:**",
+        "- No bullet follows the skeleton: [Verb] [tool/method] to [outcome], resulting in [N]%",
+        "- No two bullets across any role in the resume open with the same exact word — 'Delivered X' and 'Delivered Y' in different roles is a collision; 'Delivered X' and 'Designed Y' is not, even though both are past-tense action verbs",
+        "- No abstract descriptor leads the concrete claim ('impactful,' 'scalable,' 'robust' before the fact)",
+        "- No vague partnership opener ('Collaborated with,' 'Partnered with') unless no specific alternative exists",
+        "",
+        "**Voice check:**",
+        "- Every bullet is specific enough that it could only describe this candidate — not any PM anywhere",
+        "- The summary describes a specific person's work, not a generic PM profile",
+        "",
+        "# Cross-Role Redundancy Check — Required Before Presenting Output",
+        "",
+        "After finalizing all bullet selections, scan the selected bullets across every role in the resume for substantially similar claims.",
+        "Two bullets are substantially similar when a reader would feel they are hearing the same story twice — same core action, same domain, and same type of outcome.",
+        "Shared themes alone (e.g., two compliance bullets, two data bullets) are not enough; the claims must be substantively overlapping.",
+        "",
+        "If you find any substantially similar pairs:",
+        "- Name the two bullets and which roles they come from",
+        "- State in one sentence why they overlap",
+        "- Do NOT cut either bullet — flag them and let the candidate decide which to keep, reframe, or cut",
+        "",
+        "If no overlapping pairs are found, skip this section silently.",
+        "",
+        "Examples of what counts as overlap:",
+        "- Two bullets that both claim to have reduced due diligence time for financial institutions",
+        "- Two bullets that both describe building self-service tools that reduced support burden",
+        "- Two bullets from different roles that cite the same integration or product by name and make the same claim about it",
+        "",
+        "Examples of what does NOT count as overlap:",
+        "- Two compliance bullets that address different regulatory frameworks or different customer outcomes",
+        "- Two data pipeline bullets that describe distinct products or different layers of the stack",
+        "- A bullet about building a feature and a separate bullet about the business impact of that same feature",
         "",
         "---",
         "BEGIN PROMPT FEEDBACK — OUTPUT THIS SECTION",
@@ -785,7 +839,9 @@ def set_status(job_id: int):
             abort(404)
         db.update_status(conn, job_id, resolved)
         if resolved == "applied":
-            conn.execute("UPDATE jobs SET is_saved = 0 WHERE id = ?", (job_id,))
+            conn.execute("UPDATE jobs SET is_saved = 0, applied_at = datetime('now') WHERE id = ?", (job_id,))
+        elif resolved is None:
+            conn.execute("UPDATE jobs SET applied_at = NULL WHERE id = ?", (job_id,))
 
     if resolved == "applied":
         _push_to_job_search(job_id, row)

@@ -155,12 +155,12 @@ def get_saved_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
 
 
 def get_applied_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
-    """Return all applied jobs, ordered by score desc."""
+    """Return all applied jobs, ordered by date applied desc (newest first)."""
     rows = conn.execute(
         """
         SELECT * FROM jobs
         WHERE status = 'applied'
-        ORDER BY score DESC NULLS LAST
+        ORDER BY applied_at DESC NULLS LAST, first_seen_run DESC NULLS LAST
         """
     ).fetchall()
     return [_row_to_ranked(r) for r in rows]
