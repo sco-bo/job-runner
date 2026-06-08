@@ -370,6 +370,9 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
     tailor_guidance: list[str] = prompt_ctx.get("tailor_guidance", [])
 
     lines = [
+        f"I would like you to help me tailor my resume for a {title} role at {company}.",
+        f"I'll share the full job description and my resume bullets below. Please review them and produce a tailored version of my resume optimized for this specific role at {company}.",
+        "",
         "# Context",
         f"- I'm {role_description} applying for the role below.",
         f"- Below is my full master resume, organized by role with every bullet point.",
@@ -627,6 +630,9 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
     interview_guidance: list[str] = prompt_ctx_iv.get("interview_guidance", [])
 
     lines = [
+        f"I would like you to help me prepare for an interview for a {title} role at {company}.",
+        f"I'll share the job description and my resume bullets below. Please use them to generate targeted interview prep materials for this specific role at {company}.",
+        "",
         "# Context",
         f"- I'm {role_description_iv} interviewing for the role below.",
         f"- You are a senior hiring manager at {company} who has reviewed my resume and is preparing to interview me.",
@@ -849,3 +855,7 @@ def set_status(job_id: int):
         _delete_from_job_search(job_id, row)
 
     return redirect(url_for("index"))
+
+
+if __name__ == "__main__":
+    raise SystemExit("Use: job-puller serve")

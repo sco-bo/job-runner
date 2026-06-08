@@ -9,8 +9,12 @@ Daily job scraper that fetches listings from configurable sources, scores them a
 ## Commands
 
 ```bash
-# Install dependencies (once venv is set up)
+# Install dependencies (venv is at .venv/, activate first)
+# source .venv/bin/activate
 pip install -e ".[dev]"
+
+# Start the web UI (http://localhost:5001)
+job-puller serve
 
 # Run the full pipeline
 job-puller run
