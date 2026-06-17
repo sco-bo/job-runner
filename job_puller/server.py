@@ -616,6 +616,7 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
     description = job_row["description"] or ""
 
     bullets_by_id = {b["id"]: b["text"] for b in skills_bank.get("bullets", [])}
+    roles = skills_bank.get("roles", [])
     raw_ids = job_row["matched_bullet_ids"]
     matched_ids = json.loads(raw_ids) if raw_ids else []
     matched_bullets = [bullets_by_id[bid] for bid in matched_ids if bid in bullets_by_id]
@@ -636,8 +637,8 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "# Context",
         f"- I'm {role_description_iv} interviewing for the role below.",
         f"- You are a senior hiring manager at {company} who has reviewed my resume and is preparing to interview me.",
-        f"- Use the job description and my resume bullets below to generate targeted interview prep materials.",
-        f"- Search the internet for recent information about {company}: their products, business model, recent news, funding, leadership, and any known challenges or strategic priorities. Use this context to make the questions and talking points more specific and relevant.",
+        f"- Use the job description and my resume bullets below to generate targeted, specific prep materials — not generic PM interview advice.",
+        f"- Search the internet for recent information about {company}: their products, business model, recent news, funding, leadership, and any known challenges or strategic priorities. Use this context to make questions and talking points specific to this company and moment.",
         "",
         "# Role",
         f"{title} at {company}",
@@ -646,31 +647,121 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "# Job Description",
         description,
         "",
-        "# What I Need",
-        "1. **Likely Interview Questions** — Generate 10-15 questions you'd expect from this company for this role.",
-        "   - Include a mix of: behavioral (STAR-format), situational, technical/role-specific, and culture/values questions.",
-        "   - Weight questions toward the skills and themes most emphasized in the job description.",
-        "   - For each question, include one sentence explaining why an interviewer asks it and what signal they are looking for in the response.",
+        "# Step 1 — Identify the Evaluation Lens (do this silently before generating anything)",
+        "Before producing any output, read the job description and identify the 1-2 primary lenses this role selects for.",
+        "Choose from:",
+        "- Execution: roadmap delivery, sprint ownership, cross-functional coordination, shipping on time",
+        "- Product sense: user empathy, market intuition, product strategy, design taste, problem framing",
+        "- Data/metrics: KPI ownership, analytical rigor, metric diagnosis, north star definition",
+        "- Growth/GTM: acquisition, activation, retention, revenue, pricing, conversion",
+        "- Technical depth: platform/infra PM, API fluency, systems thinking, engineering partnership",
+        "- Leadership/influence: staff/group PM, managing through ambiguity, influencing without authority",
         "",
-        "2. **Talking Points per Question** — For each question, provide 2-3 bullet talking points I should hit.",
-        "   - Ground them in the resume bullets below where possible.",
-        "   - Flag where I should lead with a specific metric or outcome.",
+        "State the 1-2 lenses at the top of your output, then use them to weight the question distribution throughout.",
+        "A metrics-heavy role warrants 4-5 metrics questions. A product sense role warrants 4-5 design/strategy questions.",
+        "Do not default to a generic mix — the weighting should be visibly different per role.",
         "",
-        "3. **STAR Story Mapping** — For the top 5 behavioral questions, identify which of my resume bullets",
-        "   best maps to a STAR story and explain the connection.",
+        "# Step 2 — Interview Questions by Category",
+        "Generate 12-16 questions covering all of the following categories.",
+        "Weight the count per category to match the lenses identified above.",
         "",
-        "4. **Questions to Ask Them** — Suggest 5 strong questions I should ask the interviewer,",
-        "   tailored to this role and company.",
+        "For each question, output:",
+        "  - The question text",
+        "  - A [Category] tag: Behavioral | Product Sense | Metrics | Execution | Leadership | Company-Specific",
+        "  - One sentence: what signal is the interviewer actually testing for?",
         "",
-        "5. **Watch-outs** — Flag any areas in the JD where my resume has an obvious gap,",
-        "   and suggest how I might address or reframe it.",
+        "Category targets (adjust count based on lens weighting):",
+        "- **Behavioral (STAR)** [3-4]: Tests ownership, resilience, cross-functional influence, delivery under ambiguity.",
+        "  Focus on situations where the candidate had to decide, drive, or course-correct with incomplete information.",
+        "- **Product Sense / Design** [2-4, lens-weighted]: Tests user empathy, prioritization judgment, strategy clarity.",
+        "  Questions like: improve a product, define a north star metric, launch a new feature for an unfamiliar user.",
+        "  Good answers state the target user before any solution.",
+        "- **Metrics / Analytical** [2-4, lens-weighted]: Tests KPI fluency, metric ownership, and diagnostic reasoning.",
+        "  Questions like: DAU dropped 15% week-over-week — walk me through your investigation.",
+        "  Or: what metric would you use to measure success for X? What would make you concerned?",
+        "- **Execution / Prioritization** [2-3]: Tests trade-off reasoning, roadmap sequencing, scope decisions under constraint.",
+        "  Questions like: you have 3 weeks before launch and engineering says feature X won't make it — what do you do?",
+        "- **Leadership / Influence** [1-2, if Senior/Staff]: Tests stakeholder management and influence without authority.",
+        "  Questions like: tell me about a time engineering pushed back on your roadmap and you had to get alignment.",
+        "- **Company / Role-Specific** [1-2]: Questions only someone who researched this company could ask or answer well.",
+        "  Ground these in your company research — specific product decisions, competitive dynamics, or recent news.",
+        "",
+        "# Step 3 — STAR Story Mapping",
+        "For the top 5 behavioral questions, build an answer scaffold using my resume bullets below.",
+        "",
+        "For each:",
+        "1. Identify the resume bullet that best anchors this story (cite it by number from the list below)",
+        "2. Scaffold the answer in four beats:",
+        "   - Setup: what was the context, team size, constraints, scale?",
+        "   - Challenge: what made this hard — technically, organizationally, or strategically?",
+        "   - Action: what specific decisions or moves did *I* make (not 'we')?",
+        "   - Result: what was the measurable outcome, before vs. after?",
+        "3. If the anchoring bullet lacks a quantified result, flag it explicitly:",
+        "   'Rehearsal gap: bullet #N has no metric — you need to add a number verbally before this interview,",
+        "   or this answer will land soft. Candidate should think: what was the baseline? what changed? by how much?'",
+        "",
+        "# Step 4 — Resume Bullet Fit Assessment",
+        "Before using any bullet in talking points or story mapping, silently classify it as:",
+        "strong fit | partial fit | potential misframe",
+        "",
+        "For any bullet classified as potential misframe:",
+        "- State why it risks misalignment with this role's primary lens",
+        "- Example: 'This bullet frames the candidate as an infrastructure PM — if the role selects primarily for",
+        "  product sense/growth, leading with it risks positioning you as the wrong archetype. Reframe around",
+        "  the user outcome or business result, not the technical execution.'",
+        "- Do not silently drop misframed bullets — surface the flag so the candidate can decide.",
+        "",
+        "# Step 5 — Questions to Ask Them",
+        "Suggest exactly 5 questions I should ask the interviewer. Use this structure:",
+        "",
+        "- 1-2 questions about product/strategy: probe the team's conviction about where the product is going.",
+        "  Good questions reveal whether there is a real point of view or just roadmap theater.",
+        "- 1 question about team dynamics: PM-to-eng ratio, how decisions get made, what 'good' looks like here.",
+        "- 1 question about success definition: what does winning look like in 6 months for this specific role?",
+        "- 1 question about the hard thing: what is the biggest challenge the person in this role will face?",
+        "",
+        "Instruction: questions should reveal information genuinely useful for evaluating the role.",
+        "Avoid anything answerable from the company website or LinkedIn. Avoid questions that just signal enthusiasm.",
+        "",
+        "# Step 6 — Watch-outs and Gap Classification",
+        "Review the JD against my resume bullets. For every meaningful gap, classify it into one of three tiers:",
+        "",
+        "- **Dealbreaker gap**: the JD treats this as a hard requirement and my resume has no adjacent experience.",
+        "  Flag explicitly: 'This gap needs to be addressed directly in the interview or the process may not advance.'",
+        "- **Coachable gap**: the JD mentions this but my resume has adjacent or transferable experience.",
+        "  Suggest a specific reframe that bridges my background to the requirement.",
+        "- **Non-issue**: mentioned in the JD but not emphasized; my overall profile is strong enough to carry past it.",
+        "  Note it briefly and move on — do not over-index on non-issues.",
+        "",
+        "Do not list every minor keyword miss. Focus on gaps that could materially affect the interview outcome.",
         "",
     ] + (
         ["# Additional Guidance"] + [f"- {g}" if not g.startswith("-") else g for g in interview_guidance] + [""]
         if interview_guidance else []
     ) + [
+        "# Master Resume — Full Bullet List by Role",
+        "",
+    ]
+
+    if roles:
+        for role in roles:
+            lines.append("")
+            lines.append(f"## {role['title']} at {role['company']}  (keep {role['max_bullets']} bullets max)")
+            for bid in role["bullet_ids"]:
+                text = bullets_by_id.get(bid)
+                if text:
+                    lines.append(f"- {text}")
+    else:
+        lines.append("")
+        for bid, text in bullets_by_id.items():
+            lines.append(f"- {text}")
+
+    lines += [
+        "",
         "# My Resume — Top Matched Bullets for This Role",
-        "These are the bullets most relevant to this job description:",
+        "These are the bullets most relevant to this job description.",
+        "Use these as the primary source for talking points, STAR stories, and fit assessment.",
+        "They are ranked by keyword overlap — use judgment about which are actually strong fits for this role's lens.",
         "",
     ]
 

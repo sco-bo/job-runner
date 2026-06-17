@@ -139,9 +139,9 @@ def get_top_jobs(
 
 
 def get_manual_jobs(conn: sqlite3.Connection) -> list[RankedJob]:
-    """Return all manually-added active jobs, ordered by date added desc then score desc."""
+    """Return all manually-added active jobs, ordered by insertion order (newest first)."""
     rows = conn.execute(
-        "SELECT * FROM jobs WHERE site = 'manual' AND status IS NULL ORDER BY date_posted DESC NULLS LAST, score DESC NULLS LAST"
+        "SELECT * FROM jobs WHERE site = 'manual' AND status IS NULL ORDER BY id DESC"
     ).fetchall()
     return [_row_to_ranked(r) for r in rows]
 

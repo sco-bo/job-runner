@@ -62,7 +62,7 @@
 <body>
 
 <div class="header">
-  <a href="/">← Back</a>
+  <a href="{{ '/?view=manual' if job.site == 'manual' else '/' }}">← Back</a>
   <h1>{{ prompt_label or 'Tailor' }} prompt — {{ job.title }} at {{ job.company }}</h1>
 </div>
 

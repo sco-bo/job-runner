@@ -49,8 +49,9 @@ def test_to_float_invalid():
 # --- Location filter ---
 _ALLOWED = ["denver", "boulder", "remote"]
 
-def test_allowed_location_is_remote():
-    assert _is_allowed_location("Kyiv, Ukraine", is_remote=True, allowed_locations=_ALLOWED)
+def test_allowed_location_remote_flag_alone_not_sufficient():
+    """Board's is_remote flag is insufficient for non-US locations (LinkedIn marks hybrid as remote)."""
+    assert not _is_allowed_location("Kyiv, Ukraine", is_remote=True, allowed_locations=_ALLOWED)
 
 def test_allowed_location_denver():
     assert _is_allowed_location("Denver, CO", is_remote=False, allowed_locations=_ALLOWED)

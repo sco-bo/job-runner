@@ -19,6 +19,10 @@ _INDUSTRIES: dict[str, list[str]] = {
         "brokerage", "trading", "treasury", "kyc", "aml", "bsa",
         "financial institution", "neobank", "interchange", "remittance",
         "money movement", "card", "issuing", "acquiring",
+        "financial services", "securities", "asset management", "capital markets",
+        "settlement", "clearing", "custody", "investment management",
+        "portfolio management", "bnpl", "buy now pay later", "accounts receivable",
+        "wire transfer", "ach", "portfolio",
     ],
     "compliance": [
         "compliance", "regulatory", "regulation", "audit", "risk management",
@@ -32,6 +36,9 @@ _INDUSTRIES: dict[str, list[str]] = {
         "pharmaceutical", "biotech", "life sciences", "telehealth",
         "telemedicine", "care", "physician", "lab", "diagnostic",
         "revenue cycle", "prior authorization", "claims",
+        "digital health", "health tech", "mental health", "behavioral health",
+        "wellness platform", "therapy platform", "health app",
+        "remote patient monitoring",
     ],
     "insurtech": [
         "insurance", "insurtech", "underwriting", "claims", "actuary",
@@ -82,6 +89,8 @@ _INDUSTRIES: dict[str, list[str]] = {
         "real estate", "proptech", "property", "mortgage", "lease",
         "tenant", "landlord", "multifamily", "commercial real estate",
         "cre", "listing", "mls", "homebuyer", "home buying",
+        "realty", "homeowner", "property management", "renter", "apartment",
+        "home search", "rental platform",
     ],
     "edtech": [
         "edtech", "education", "learning", "lms", "curriculum",
@@ -111,6 +120,16 @@ _INDUSTRIES: dict[str, list[str]] = {
         "government", "govtech", "public sector", "federal", "state agency",
         "municipal", "civic", "defense", "dod", "agency", "public safety",
         "justice", "court", "dmv", "social services",
+    ],
+    "gaming": [
+        "gaming", "esports", "video game", "game studio", "mobile game",
+        "in-game", "game developer", "game engine", "game design",
+        "loot box", "battle pass", "player engagement",
+    ],
+    "travel": [
+        "travel", "hotel", "hospitality", "airline", "accommodation",
+        "lodging", "vacation rental", "travel management", "itinerary",
+        "trip planning", "booking platform", "flight", "reservation system",
     ],
     "saas-b2b": [
         "saas", "b2b", "enterprise software", "platform", "cloud software",
@@ -150,7 +169,7 @@ def classify(title: str, description: str) -> str | None:
     return best
 
 
-def classify_all(conn, batch_size: int = 500) -> int:
+def classify_all(conn, batch_size: int = 10000) -> int:
     """Classify industry for all jobs missing one. Returns count updated."""
     import sqlite3
     rows = conn.execute(
