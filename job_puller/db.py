@@ -116,6 +116,10 @@ def init_db(db_path: Path) -> None:
             conn.execute("ALTER TABLE jobs ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0")
         if "applied_at" not in cols:
             conn.execute("ALTER TABLE jobs ADD COLUMN applied_at TEXT")
+        if "created_at" not in cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN created_at TEXT")
+            conn.execute("UPDATE jobs SET created_at = date_posted || 'T00:00:00' WHERE created_at IS NULL AND date_posted IS NOT NULL")
+            conn.execute("UPDATE jobs SET created_at = datetime('now') WHERE created_at IS NULL")
         # connections table (CREATE IF NOT EXISTS handles new DBs; existing DBs get it here)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS connections (
@@ -152,17 +156,21 @@ def upsert_job(conn: sqlite3.Connection, job: Job, run_id: Optional[int] = None)
     if existing:
         return False
 
+    from datetime import datetime, timezone
+
     conn.execute(
         """
         INSERT INTO jobs (
             url, title, company, location, is_remote, job_type, description,
-            salary_min, salary_max, date_posted, site, first_seen_run
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            salary_min, salary_max, date_posted, site, first_seen_run,
+            created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             job.url, job.title, job.company, job.location, job.is_remote,
             job.job_type, job.description, job.salary_min, job.salary_max,
             job.date_posted, job.site, run_id,
+            datetime.now(timezone.utc).isoformat(),
         ),
     )
     return True

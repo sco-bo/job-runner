@@ -147,6 +147,7 @@
   .badge.theme    { background: #fef3c7; color: #92400e; }
   .badge.industry { background: #e0f2fe; color: #0369a1; }
   .badge.fetched      { background: var(--surface2); color: var(--text-dim); font-weight: 400; }
+  .badge.added        { background: var(--surface2); color: var(--text-dim); font-weight: 400; }
   .badge.connections  { background: #fce7f3; color: #831843; border: 1px solid #f9a8d4; }
   [data-theme="dark"] .badge.remote   { background: #1e3a5f; color: #93c5fd; }
   [data-theme="dark"] .badge.manual   { background: #2d1b00; color: #fcd34d; border-color: #854d0e; }
@@ -521,6 +522,7 @@
           👤 {{ job.connection_count }}</span>
       {% endif %}
       {% if job.first_seen_run and job.first_seen_run in run_date_map %}<span class="badge fetched">fetched {{ run_date_map[job.first_seen_run] }}</span>{% endif %}
+      {% if not job.first_seen_run and job.created_at %}<span class="badge added">added {{ job.created_at | format_isotime }}</span>{% endif %}
     </div>
     {% if job.score_rationale %}<div class="rationale">{{ job.score_rationale[:120] }}</div>{% endif %}
     {% if job.description_highlights %}

@@ -24,6 +24,7 @@ class RankedJob:
     matched_bullet_ids: list[str]
     industry: Optional[str]
     first_seen_run: Optional[int]
+    created_at: Optional[str]
     description_highlights: list[str]
     state_restricted: bool = False
     connection_count: int = 0
@@ -52,6 +53,7 @@ def _row_to_ranked(row: sqlite3.Row) -> RankedJob:
         matched_bullet_ids=bullet_ids,
         industry=row["industry"] if "industry" in row.keys() else None,
         first_seen_run=row["first_seen_run"] if "first_seen_run" in row.keys() else None,
+        created_at=row["created_at"] if "created_at" in row.keys() else None,
         description_highlights=json.loads(row["description_highlights"]) if row["description_highlights"] else [],
         state_restricted=bool(row["state_restricted"]) if "state_restricted" in row.keys() else False,
         connection_count=row["connection_count"] if "connection_count" in row.keys() else 0,

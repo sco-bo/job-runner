@@ -27,6 +27,23 @@ app = Flask(__name__, template_folder=str(_TEMPLATES_DIR))
 
 
 # ---------------------------------------------------------------------------
+# Jinja2 filters
+# ---------------------------------------------------------------------------
+
+@app.template_filter("format_isotime")
+def _format_isotime(iso_str: str) -> str:
+    """Convert ISO datetime string like '2026-06-19T12:18:23+00:00' to 'June 19, 2026'."""
+    if not iso_str:
+        return ""
+    from datetime import datetime
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return dt.strftime("%B %-d, %Y")
+    except (ValueError, TypeError):
+        return iso_str[:10]
+
+
+# ---------------------------------------------------------------------------
 # Job-pull run state (SSE streaming)
 # ---------------------------------------------------------------------------
 
@@ -692,8 +709,8 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "For each:",
         "1. Identify the resume bullet that best anchors this story (cite it by number from the list below)",
         "2. Scaffold the answer in four beats:",
-        "   - Setup: what was the context, team size, constraints, scale?",
-        "   - Challenge: what made this hard — technically, organizationally, or strategically?",
+        "   - Situation: what was the context, team size, constraints, scale?",
+        "   - Task: what was the specific task or goal I was responsible for?",
         "   - Action: what specific decisions or moves did *I* make (not 'we')?",
         "   - Result: what was the measurable outcome, before vs. after?",
         "3. If the anchoring bullet lacks a quantified result, flag it explicitly:",
@@ -734,6 +751,37 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
         "  Note it briefly and move on — do not over-index on non-issues.",
         "",
         "Do not list every minor keyword miss. Focus on gaps that could materially affect the interview outcome.",
+        "",
+        "# Step 7 — Universal Fit Questions (Asked Every Interview)",
+        "Include answer prep for these evergreen questions that every interviewer asks",
+        "regardless of role or level. They test motivation, self-awareness, and commitment.",
+        "Do not skip them.",
+        "",
+        "1. \"Why do you want to work here?\" (and variants: \"What interests you about this role?\",",
+        "   \"Why are you leaving your current position?\")",
+        "",
+        "   Answer framework — three beats:",
+        "   (a) MOTIVATION: State what the candidate is seeking next. Prefer pull over push.",
+        "       For \"why are you leaving\": acknowledge briefly, immediately pivot to pull.",
+        "   (b) SPECIFIC SIGNAL: Cite one concrete thing from the JD or company research —",
+        "       a stated challenge, strategic priority, or product direction — as evidence",
+        "       that the answer is prepared, not generic.",
+        "   (c) CONTRIBUTION: \"I know I can help you solve [CHALLENGE]\", where [CHALLENGE]",
+        "       comes from the intersection of the JD's hardest problem and the candidate's",
+        "       strongest relevant experience.",
+        "",
+        "   Never: complain about current employer, cite salary as primary reason, or frame",
+        "   departure as running-from rather than running-to.",
+        "",
+        "2. \"Where do you see yourself in N years?\"",
+        "",
+        "   Convert the trap into a commitment signal:",
+        "   (a) \"I see myself here.\" — directly answers the question and signals intent.",
+        "   (b) \"Becoming an expert in [AREA] and a valuable part of this team.\" — [AREA]",
+        "       must be a GROWTH direction from the JD, not something already mastered.",
+        "       If every matching area is already mastered, pick the one with the most upside.",
+        "   (c) \"This role aligns with where I want to go because [SPECIFIC THING].\" — one",
+        "       concrete alignment between the job's trajectory and the candidate's direction.",
         "",
     ] + (
         ["# Additional Guidance"] + [f"- {g}" if not g.startswith("-") else g for g in interview_guidance] + [""]
