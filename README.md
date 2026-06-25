@@ -28,6 +28,8 @@ Scrape  →  Score  →  Rank  →  Web UI
 
 ## Setup
 
+### Quick start (recommended — no YAML editing)
+
 ```bash
 # 1. Clone
 git clone https://github.com/yourname/job_puller.git
@@ -39,6 +41,26 @@ source .venv/bin/activate
 
 # 3. Install
 pip install -e ".[dev]"
+
+# 4. Copy the config file
+cp config/config.template.yaml config/config.yaml
+
+# 5. Start the web UI and complete the onboarding wizard
+job-puller serve
+```
+
+Then open `http://localhost:5001` and click **Setup Wizard** in the header. The wizard guides you through:
+
+1. **Basic preferences** — location, LinkedIn, target titles, salary range, keywords
+2. **LLM-assisted resume import** — copy a prompt, paste it (along with your resumes) into Claude.ai or any LLM, and get back a structured YAML
+3. **Upload & review** — paste the YAML back, review your themes, and save
+
+The wizard writes `profile/profile.yaml` and `profile/skills_bank.yaml` for you. No YAML editing required.
+
+### Manual setup (YAML editing)
+
+```bash
+# 1-3. Same as above
 
 # 4. Copy and fill in the config files
 cp config/config.template.yaml config/config.yaml
@@ -155,6 +177,8 @@ Opens at `http://localhost:5000`. Features:
 - **Apply / Dismiss** — updates the database; dismissed jobs are hidden, applied jobs move to a separate section
 - **Tailor ✦** — generates a ready-to-paste prompt for tailoring your resume to the specific job
 - **Interview ✦** — generates interview prep materials for the role
+- **Edit Profile ✎** — edit your profile preferences, resume themes, bullet points, and education/certs without touching YAML files
+- **Setup Wizard ✓** — initial setup assistant that walks you through profile creation with LLM-assisted resume import
 - **Connections ⬡** — manage your network connections list
 - **Dark mode** — toggle in the top-right corner; respects your OS setting by default
 
@@ -232,6 +256,7 @@ job_puller/
 │   ├── location_flags.py
 │   ├── connections.py   # Network connection matching
 │   ├── server.py        # Flask web UI
+│   ├── onboarding.py    # Setup wizard: YAML utilities, LLM prompt, upload validation
 │   └── reporter.py      # Static HTML report generator
 ├── templates/           # Jinja2 templates
 ├── profile/             # Your resume content (gitignored)

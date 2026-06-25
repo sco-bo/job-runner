@@ -11,6 +11,7 @@ venv/
 # Project — keep templates, ignore user files
 profile/profile.yaml
 profile/skills_bank.yaml
+profile_qa/
 
 # Generated reports and database
 reports/

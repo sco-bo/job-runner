@@ -56,8 +56,7 @@ The app is a Python CLI (`job_puller/` package, entry point in `cli.py` via Type
 ## Key constraints
 
 - **No Anthropic SDK, no API calls, ever.** The tool is fully offline except for scraping. The `tailor` command only prints a string — it does not call any AI service.
-- **`skills_bank.yaml` is user-owned.** The tool reads it but never writes or generates it. If it's missing, exit immediately with a descriptive error pointing to `profile/skills_bank.template.yaml`.
-- Same rule applies to `profile.yaml` — missing file = immediate exit, no interactive prompting.
+- **`skills_bank.yaml` and `profile.yaml` are user-owned.** The CLI commands (`run`, `rescore`) exit immediately with a descriptive error if they're missing. HOWEVER, the onboarding wizard (`/onboard` routes in the web UI) **writes these files** as the final step of setup. The profile editor (`/profile` routes) also writes them when saving changes. Non-wizard/editor code paths must never write these files.
 - Dedup key is `url` (UNIQUE constraint in SQLite). Both scrapers rely on this — never change it to an auto-increment or content hash.
 
 ## Data files

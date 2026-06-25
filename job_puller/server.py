@@ -19,9 +19,47 @@ from job_puller import (
 )
 from job_puller.db import get_runs
 from job_puller.reporter import _build_bullets_map
+from job_puller.onboarding import (
+    assign_bullet_id,
+    extract_education_from_upload,
+    extract_roles_from_upload,
+    extract_themes_from_upload,
+    generate_llm_prompt,
+    make_profile_data_from_form,
+    read_profile,
+    read_skills_bank,
+    validate_upload,
+    write_profile_yaml,
+    write_skills_bank_yaml,
+)
 
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
-_PROFILE_PATH = Path(__file__).parent.parent / "profile" / "profile.yaml"
+_BASE_DIR = Path(__file__).parent.parent
+_PROFILE_DIR = _BASE_DIR / "profile"
+
+
+def _profile_path() -> Path:
+    """Return the active profile directory path, respecting QA mode."""
+    qa_dir = _get_app_config("QA_PROFILE_DIR")
+    if qa_dir:
+        return Path(qa_dir) / "profile.yaml"
+    return _PROFILE_DIR / "profile.yaml"
+
+
+def _skills_path() -> Path:
+    """Return the active skills_bank path, respecting QA mode."""
+    qa_dir = _get_app_config("QA_PROFILE_DIR")
+    if qa_dir:
+        return Path(qa_dir) / "skills_bank.yaml"
+    return _PROFILE_DIR / "skills_bank.yaml"
+
+
+def _get_app_config(key: str):
+    """Safely get a Flask app config value, returning None if not set."""
+    try:
+        return app.config.get(key)
+    except RuntimeError:
+        return None
 
 app = Flask(__name__, template_folder=str(_TEMPLATES_DIR))
 
@@ -97,8 +135,8 @@ def _pipeline_worker() -> None:
         skills_bank: dict = app.config["SKILLS_BANK"]
 
         profile: dict = {}
-        if _PROFILE_PATH.exists():
-            with open(_PROFILE_PATH) as f:
+        if _profile_path().exists():
+            with open(_profile_path()) as f:
                 profile = yaml.safe_load(f) or {}
 
         db.init_db(db_path)
@@ -221,8 +259,8 @@ def _conn():
 
 
 def _exclude_keywords() -> list[str]:
-    if _PROFILE_PATH.exists():
-        with open(_PROFILE_PATH) as f:
+    if _profile_path().exists():
+        with open(_profile_path()) as f:
             profile = yaml.safe_load(f) or {}
         return profile.get("exclude_title_keywords", [])
     return []
@@ -379,8 +417,8 @@ def _build_tailor_prompt(job_row, skills_bank: dict) -> str:
 
     # Load user-defined prompt context from profile.yaml
     prompt_ctx: dict = {}
-    if _PROFILE_PATH.exists():
-        with open(_PROFILE_PATH) as _f:
+    if _profile_path().exists():
+        with open(_profile_path()) as _f:
             _profile = yaml.safe_load(_f) or {}
         prompt_ctx = _profile.get("prompt_context", {})
     role_description = prompt_ctx.get("role_description", "a job applicant")
@@ -591,8 +629,8 @@ def tailor_adhoc():
 
     # Load profile for scoring
     profile: dict = {}
-    if _PROFILE_PATH.exists():
-        with open(_PROFILE_PATH) as f:
+    if _profile_path().exists():
+        with open(_profile_path()) as f:
             profile = yaml.safe_load(f) or {}
 
     job_obj = db.Job(
@@ -640,8 +678,8 @@ def _build_interview_prompt(job_row, skills_bank: dict) -> str:
 
     # Load user-defined prompt context from profile.yaml
     prompt_ctx_iv: dict = {}
-    if _PROFILE_PATH.exists():
-        with open(_PROFILE_PATH) as _f:
+    if _profile_path().exists():
+        with open(_profile_path()) as _f:
             _profile_iv = yaml.safe_load(_f) or {}
         prompt_ctx_iv = _profile_iv.get("prompt_context", {})
     role_description_iv = prompt_ctx_iv.get("role_description", "a job applicant")
@@ -851,8 +889,8 @@ def interview_adhoc():
     description = request.form.get("description", "").strip()
 
     profile: dict = {}
-    if _PROFILE_PATH.exists():
-        with open(_PROFILE_PATH) as f:
+    if _profile_path().exists():
+        with open(_profile_path()) as f:
             profile = yaml.safe_load(f) or {}
 
     job_obj = db.Job(
@@ -994,6 +1032,489 @@ def set_status(job_id: int):
         _delete_from_job_search(job_id, row)
 
     return redirect(url_for("index"))
+
+
+# ---------------------------------------------------------------------------
+# Onboarding wizard
+# ---------------------------------------------------------------------------
+
+@app.route("/onboard", methods=["GET", "POST"])
+def onboard():
+    from datetime import datetime, timezone
+    step = request.args.get("step", "1")
+
+    # Redirect to step 1 if no step specified
+    if step not in ("1", "2", "3", "4"):
+        return redirect(url_for("onboard", step=1))
+
+    with _conn() as conn:
+        db.init_onboarding(conn)
+
+        if step == "1":
+            if request.method == "GET":
+                state = db.get_onboarding_state(conn)
+                profile_data = state.get("profile", {}) or {}
+                # Convert list fields to newline-separated strings for textareas
+                for list_field in ("target_titles", "target_levels",
+                                   "preferred_locations", "preferred_company_size",
+                                   "avoid_keywords", "exclude_title_keywords",
+                                   "industries"):
+                    if isinstance(profile_data.get(list_field), list):
+                        profile_data[list_field] = "\n".join(profile_data[list_field])
+                return render_template(
+                    "onboard_step1.html.j2",
+                    data=profile_data,
+                    errors=[],
+                )
+
+            # POST
+            errors = []
+            form = request.form
+
+            profile_data = make_profile_data_from_form(form)
+
+            if errors:
+                return render_template("onboard_step1.html.j2", data=profile_data, errors=errors)
+
+            db.save_onboarding_state(conn, step=2, profile=profile_data)
+            return redirect(url_for("onboard", step=2))
+
+        elif step == "2":
+            state = db.get_onboarding_state(conn)
+            profile_data = state.get("profile", {}) or {}
+            name = profile_data.get("name", "")
+            email = profile_data.get("email", "")
+            location = profile_data.get("location", "")
+            linkedin = profile_data.get("linkedin", "")
+
+            if request.method == "POST":
+                # Step 2 is view-only (just instructions), advance to step 3
+                return redirect(url_for("onboard", step=3))
+
+            prompt = generate_llm_prompt(name, email, location, linkedin)
+            return render_template(
+                "onboard_step2.html.j2",
+                prompt=prompt,
+            )
+
+        elif step == "3":
+            state = db.get_onboarding_state(conn)
+            profile_data = state.get("profile", {}) or {}
+            review_mode = request.args.get("review") == "1"
+            reset = request.args.get("reset") == "1"
+
+            # Handle theme review submission
+            if request.method == "POST" and request.form.get("confirmed") == "true":
+                return _onboard_finish(conn, request.form, profile_data)
+
+            # Handle file upload
+            if request.method == "POST" and not review_mode:
+                yaml_text = request.form.get("yaml_text", "")
+                if not yaml_text and "yaml_file" in request.files:
+                    f = request.files["yaml_file"]
+                    if f and f.filename:
+                        yaml_text = f.read().decode("utf-8", errors="replace")
+
+                if not yaml_text.strip():
+                    return render_template(
+                        "onboard_step3.html.j2", review_mode=False,
+                        errors=["No YAML content provided. Paste or upload a file."],
+                        yaml_text="",
+                    )
+
+                result = validate_upload(yaml_text, profile_data.get("name", ""))
+                if not result["valid"]:
+                    return render_template(
+                        "onboard_step3.html.j2", review_mode=False,
+                        errors=result["errors"],
+                        yaml_text=yaml_text,
+                    )
+
+                # Store parsed data in onboarding state
+                data = result["data"]
+                db.save_onboarding_state(
+                    conn, step=3,
+                    parsed_data={
+                        "raw_data": data,
+                        "themes": extract_themes_from_upload(data),
+                        "roles": extract_roles_from_upload(data),
+                    },
+                )
+                return redirect(url_for("onboard", step=3, review=1))
+
+            # Theme review mode
+            if review_mode or reset:
+                parsed_state = state.get("parsed_data", {}) or {}
+                themes = parsed_state.get("themes", [])
+                roles = parsed_state.get("roles", [])
+                if not themes:
+                    themes = [{"label": "general", "summary": "General product management experience."}]
+                # Mark original labels for tracking
+                for t in themes:
+                    t["original"] = t["label"]
+                bullet_count = sum(len(r.get("bullets", [])) for r in roles)
+                extra_count = max(0, len(themes) - 7)
+                return render_template(
+                    "onboard_step3.html.j2", review_mode=True,
+                    themes=themes, bullet_count=bullet_count,
+                    role_count=len(roles), extra_count=extra_count,
+                    errors=[],
+                )
+
+            return render_template("onboard_step3.html.j2", review_mode=False, errors=[], yaml_text="")
+
+        elif step == "4":
+            return render_template("onboard_step4.html.j2")
+
+    return redirect(url_for("onboard", step=1))
+
+
+def _onboard_finish(conn, form: dict, profile_data: dict) -> str:
+    """Handle the final theme confirmation and write YAML files."""
+    state = db.get_onboarding_state(conn)
+    parsed_state = state.get("parsed_data", {}) or {}
+    data = parsed_state.get("raw_data", {})
+    uploaded_themes = parsed_state.get("themes", [])
+
+    # Process theme review form: collect non-removed themes
+    final_themes = []
+    removed_indices = set()
+    for key in form:
+        if key.startswith("remove_theme_"):
+            removed_indices.add(int(key.split("_")[2]))
+
+    # Determine how many themes were submitted
+    for i, _ in enumerate(uploaded_themes):
+        if i in removed_indices:
+            continue
+        label = form.get(f"theme_label_{i}", "")
+        summary = form.get(f"theme_summary_{i}", "")
+        if label:
+            final_themes.append({"label": label, "summary": summary.strip()})
+
+    # Enforce max 7
+    final_themes = final_themes[:7]
+
+    # Extract data from upload
+    bullets = data.get("bullets", []) or []
+    education = extract_education_from_upload(data)
+    certifications = []
+    certs_raw = data.get("certifications", []) or []
+    for c in certs_raw:
+        if isinstance(c, str):
+            certifications.append(c)
+    name = data.get("name", profile_data.get("name", ""))
+    email = data.get("email", profile_data.get("email", ""))
+    location = data.get("location", profile_data.get("location", ""))
+    linkedin = data.get("linkedin", profile_data.get("linkedin", ""))
+
+    # Write skills_bank.yaml
+    skills_path = _skills_path()
+    roles = extract_roles_from_upload(data)
+    write_skills_bank_yaml(
+        skills_path,
+        name=name,
+        email=email,
+        location=location,
+        linkedin=linkedin,
+        themes=final_themes,
+        education=education,
+        certifications=certifications,
+        roles=roles,
+    )
+
+    # Write profile.yaml (merge uploaded name/email with profile form data)
+    profile_data["name"] = name
+    if email:
+        profile_data["email"] = email
+    profile_path = _profile_path()
+    write_profile_yaml(profile_path, profile_data)
+
+    # Clear onboarding state
+    db.clear_onboarding_state(conn)
+
+    return redirect(url_for("onboard", step=4))
+
+
+# ---------------------------------------------------------------------------
+# Profile editor
+# ---------------------------------------------------------------------------
+
+def _load_profile_data():
+    """Load both YAML files into structured dicts."""
+    p_path = _profile_path()
+    s_path = _skills_path()
+    profile = read_profile(p_path) if p_path.exists() else {}
+    skills = read_skills_bank(s_path) if s_path.exists() else {}
+    return profile, skills
+
+
+def _save_profile_yaml(profile: dict):
+    """Write profile.yaml from structured dict."""
+    write_profile_yaml(_profile_path(), profile)
+
+
+def _save_skills_yaml(themes: list, education: list, certifications: list,
+                      roles: list, name: str = "", email: str = "",
+                      location: str = "", linkedin: str = ""):
+    """Write skills_bank.yaml from structured data."""
+    write_skills_bank_yaml(
+        _skills_path(),
+        name=name, email=email, location=location, linkedin=linkedin,
+        themes=themes, education=education,
+        certifications=certifications, roles=roles,
+    )
+
+
+def _extract_skills_profile(skills: dict) -> tuple:
+    """Extract structured data from skills_bank dict."""
+    themes = []
+    for label, summary in skills.get("summary_variants", {}).items():
+        if isinstance(summary, str):
+            themes.append({"label": label, "summary": summary.strip()})
+    education = skills.get("education", []) or []
+    certifications = skills.get("certifications", []) or []
+    # Extract bullets with roles (flat list for now)
+    bullets_raw = skills.get("bullets", []) or []
+    bullets = []
+    for b in bullets_raw:
+        if isinstance(b, dict):
+            bullets.append({
+                "id": b.get("id", ""),
+                "text": b.get("text", ""),
+                "themes": b.get("themes", []),
+                "strength": b.get("strength", "medium"),
+            })
+    roles_raw = skills.get("roles", []) or []
+    roles = []
+    for r in roles_raw:
+        if isinstance(r, dict):
+            roles.append(r)
+    if not roles and bullets:
+        roles = [{"company": "", "title": "", "bullets": bullets}]
+    return themes, education, certifications, roles, bullets
+
+
+@app.route("/profile")
+def profile_overview():
+    profile, skills = _load_profile_data()
+    themes, education, certifications, roles, bullets = _extract_skills_profile(skills)
+    return render_template(
+        "profile.html.j2",
+        profile=profile,
+        themes=themes,
+        education=education,
+        certifications=certifications,
+        roles=roles,
+        bullets=bullets,
+    )
+
+
+@app.route("/profile/basics", methods=["GET", "POST"])
+def profile_basics():
+    profile, _ = _load_profile_data()
+
+    if request.method == "POST":
+        form = request.form
+        # Convert newline-separated textareas into lists
+        def _lines(key): return [l.strip() for l in form.get(key, "").strip().split("\n") if l.strip()]
+        profile["name"] = form.get("name", "").strip()
+        profile["email"] = form.get("email", "")
+        profile["location"] = form.get("location", "")
+        profile["linkedin"] = form.get("linkedin", "")
+        profile["target_titles"] = _lines("target_titles")
+        profile["years_experience"] = int(form.get("years_experience", 0) or 0)
+        profile["salary_min"] = int(form.get("salary_min", 0) or 0)
+        profile["salary_max"] = int(form.get("salary_max", 0) or 0)
+        profile["preferred_locations"] = _lines("preferred_locations")
+        profile["preferred_remote"] = form.get("preferred_remote") == "true"
+        profile["avoid_keywords"] = _lines("avoid_keywords")
+        profile["exclude_title_keywords"] = _lines("exclude_title_keywords")
+        profile["role_description"] = form.get("role_description", "a job applicant")
+        industries = _lines("industries")
+        if industries:
+            profile["industries"] = industries
+        else:
+            profile.pop("industries", None)
+        _save_profile_yaml(profile)
+        return render_template("profile_basics.html.j2", data=profile, saved=True)
+
+    # GET: prepare form data (convert lists to newline-separated strings)
+    data = dict(profile)
+    for key in ("target_titles", "preferred_locations", "avoid_keywords",
+                "exclude_title_keywords", "industries"):
+        if isinstance(data.get(key), list):
+            data[key] = "\n".join(data[key])
+    return render_template("profile_basics.html.j2", data=data, saved=False)
+
+
+@app.route("/profile/themes", methods=["GET", "POST"])
+def profile_themes():
+    _, skills = _load_profile_data()
+    themes, education, certifications, roles, bullets = _extract_skills_profile(skills)
+
+    if request.method == "POST":
+        form = request.form
+        new_themes = []
+        # Collect existing themes
+        for i in range(len(themes)):
+            label = form.get(f"label_{i}", "").strip()
+            summary = form.get(f"summary_{i}", "").strip()
+            if label:
+                new_themes.append({"label": label, "summary": summary})
+        # Collect new themes
+        for key in form:
+            if key.startswith("label_new_"):
+                idx = key.split("label_new_")[1]
+                label = form.get(key, "").strip()
+                summary = form.get(f"summary_new_{idx}", "").strip()
+                if label:
+                    new_themes.append({"label": label, "summary": summary})
+        # Enforce max 7
+        new_themes = new_themes[:7]
+        name = skills.get("name", "")
+        email = skills.get("email", "")
+        location = skills.get("location", "")
+        linkedin = skills.get("linkedin", "")
+        _save_skills_yaml(new_themes, education, certifications, roles,
+                          name=name, email=email, location=location, linkedin=linkedin)
+        return render_template("profile_themes.html.j2", themes=new_themes, saved=True)
+
+    return render_template("profile_themes.html.j2", themes=themes, saved=False)
+
+
+@app.route("/profile/bullets", methods=["GET", "POST"])
+def profile_bullets():
+    _, skills = _load_profile_data()
+    themes, education, certifications, roles, bullets = _extract_skills_profile(skills)
+    all_theme_labels = [t["label"] for t in themes]
+    available_themes_str = ", ".join(all_theme_labels)
+
+    if request.method == "POST":
+        form = request.form
+        new_bullets = []
+        # Existing bullets
+        for i in range(len(bullets)):
+            # Check if removed
+            if form.get(f"remove_{i}") == "true":
+                continue
+            text = form.get(f"text_{i}", "").strip()
+            strength = form.get(f"strength_{i}", "medium")
+            themes_str = form.get(f"themes_{i}", "")
+            bullet_themes = [t.strip() for t in themes_str.split(",") if t.strip()]
+            bid = form.get(f"id_{i}", "")
+            if text:
+                new_bullets.append({
+                    "id": bid or assign_bullet_id(text),
+                    "text": text,
+                    "themes": bullet_themes,
+                    "strength": strength,
+                })
+        # New bullets
+        for key in form:
+            if key.startswith("text_new_"):
+                idx = key.split("text_new_")[1]
+                text = form.get(key, "").strip()
+                strength = form.get(f"strength_new_{idx}", "medium")
+                themes_str = form.get(f"themes_new_{idx}", "")
+                bullet_themes = [t.strip() for t in themes_str.split(",") if t.strip()]
+                bid = form.get(f"id_new_{idx}", "")
+                if text:
+                    new_bullets.append({
+                        "id": bid or assign_bullet_id(text, {b["id"] for b in new_bullets}),
+                        "text": text,
+                        "themes": bullet_themes,
+                        "strength": strength,
+                    })
+        # Rebuild roles with updated bullets
+        new_roles = []
+        for role in roles:
+            role_bullets = []
+            for b in role.get("bullets", []):
+                # Find matching bullet in new list
+                for nb in new_bullets:
+                    if nb["id"] == b.get("id"):
+                        role_bullets.append(nb)
+                        break
+            if role_bullets or not new_bullets:
+                role["bullets"] = role_bullets or new_bullets
+                new_roles.append(role)
+        if not new_roles:
+            new_roles = [{"company": "", "title": "", "bullets": new_bullets}]
+        # Also handle bullets not in any role (orphan bullets)
+        all_role_ids = set()
+        for r in new_roles:
+            for b in r.get("bullets", []):
+                all_role_ids.add(b["id"])
+        for nb in new_bullets:
+            if nb["id"] not in all_role_ids:
+                if new_roles:
+                    new_roles[0]["bullets"].append(nb)
+                else:
+                    new_roles.append({"company": "", "title": "", "bullets": [nb]})
+        name = skills.get("name", "")
+        email = skills.get("email", "")
+        location = skills.get("location", "")
+        linkedin = skills.get("linkedin", "")
+        _save_skills_yaml(themes, education, certifications, new_roles,
+                          name=name, email=email, location=location, linkedin=linkedin)
+        return render_template("profile_bullets.html.j2", bullets=new_bullets,
+                               saved=True, all_themes=all_theme_labels,
+                               available_themes=available_themes_str)
+
+    return render_template("profile_bullets.html.j2", bullets=bullets,
+                           saved=False, all_themes=all_theme_labels,
+                           available_themes=available_themes_str)
+
+
+@app.route("/profile/education", methods=["GET", "POST"])
+def profile_education():
+    _, skills = _load_profile_data()
+    themes, education, certifications, roles, bullets = _extract_skills_profile(skills)
+
+    if request.method == "POST":
+        form = request.form
+        new_education = []
+        for i in range(len(education)):
+            degree = form.get(f"edu_degree_{i}", "").strip()
+            school = form.get(f"edu_school_{i}", "").strip()
+            year_str = form.get(f"edu_year_{i}", "").strip()
+            year = int(year_str) if year_str else 0
+            if degree and school:
+                new_education.append({"degree": degree, "school": school, "year": year})
+        # New education entries
+        for key in form:
+            if key.startswith("edu_degree_new_"):
+                idx = key.split("edu_degree_new_")[1]
+                degree = form.get(key, "").strip()
+                school = form.get(f"edu_school_new_{idx}", "").strip()
+                year_str = form.get(f"edu_year_new_{idx}", "").strip()
+                year = int(year_str) if year_str else 0
+                if degree and school:
+                    new_education.append({"degree": degree, "school": school, "year": year})
+
+        new_certifications = []
+        for i in range(len(certifications)):
+            cert = form.get(f"cert_{i}", "").strip()
+            if cert:
+                new_certifications.append(cert)
+        for key in form:
+            if key.startswith("cert_new_"):
+                cert = form.get(key, "").strip()
+                if cert:
+                    new_certifications.append(cert)
+
+        name = skills.get("name", "")
+        email = skills.get("email", "")
+        location = skills.get("location", "")
+        linkedin = skills.get("linkedin", "")
+        _save_skills_yaml(themes, new_education, new_certifications, roles,
+                          name=name, email=email, location=location, linkedin=linkedin)
+        return render_template("profile_education.html.j2", education=new_education,
+                               certifications=new_certifications, saved=True)
+
+    return render_template("profile_education.html.j2", education=education,
+                           certifications=certifications, saved=False)
 
 
 if __name__ == "__main__":

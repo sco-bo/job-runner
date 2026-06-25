@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — {{ profile.name }}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root { --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+           --border: #e5e7eb; --text: #111827; --radius: 8px;
+           --green: #22c55e; --yellow: #eab308; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .main { max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  p.sub { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+
+  .profile-header { background: white; border: 1px solid var(--border);
+                    border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+                    display: flex; justify-content: space-between; align-items: start; }
+  .profile-header .name { font-size: 18px; font-weight: 700; }
+  .profile-header .detail { font-size: 13px; color: var(--gray); margin-top: 4px; }
+  .profile-header .badge { display: inline-block; background: #dbeafe; color: #1e40af;
+                           font-size: 11px; padding: 2px 8px; border-radius: 4px;
+                           margin-top: 8px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: white; border: 1px solid var(--border);
+               border-radius: var(--radius); padding: 20px; }
+  .stat-card .num { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .stat-card .action { display: inline-block; margin-top: 10px; font-size: 12px;
+                       color: var(--blue); text-decoration: none; }
+  .stat-card .action:hover { text-decoration: underline; }
+
+  .section { background: white; border: 1px solid var(--border);
+             border-radius: var(--radius); margin-bottom: 16px; }
+  .section-header { display: flex; justify-content: space-between; align-items: center;
+                    padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .section-header h3 { font-size: 14px; font-weight: 600; }
+  .section-header .badge { font-size: 11px; color: var(--gray); }
+
+  .section-body { padding: 14px 20px; }
+  .section-body.empty { color: var(--gray); font-size: 13px; font-style: italic; }
+  .section-body .item { padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .section-body .item:last-child { border-bottom: none; }
+  .section-body .item .meta { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .section-body .bullet-text { font-size: 12px; line-height: 1.5; }
+
+  .tag { display: inline-block; background: #f3f4f6; color: #374151;
+         font-size: 11px; padding: 2px 7px; border-radius: 3px; margin-right: 4px; }
+  .tag.high { background: #dcfce7; color: #166534; }
+  .tag.medium { background: #fef3c7; color: #92400e; }
+  .tag.supporting { background: #f3f4f6; color: #6b7280; }
+
+  .btn { background: white; color: #374151; border: 1px solid var(--border);
+         border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 500;
+         cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { background: #f9fafb; }
+  .btn-primary { background: #1e293b; color: white; border: none; }
+  .btn-primary:hover { background: #334155; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">← Back to Dashboard</a>
+  <h1>Profile</h1>
+</div>
+
+<div class="main">
+
+  <div class="profile-header">
+    <div>
+      <div class="name">{{ profile.name }}</div>
+      <div class="detail">{{ profile.email }} · {{ profile.location or 'Location not set' }}</div>
+      {% if profile.linkedin %}<div class="detail"><a href="{{ profile.linkedin }}" target="_blank" style="color:var(--blue)">{{ profile.linkedin }}</a></div>{% endif %}
+      <div><span class="badge">{{ profile.years_experience }} years experience</span></div>
+    </div>
+    <a href="/profile/basics" class="btn">Edit basics</a>
+  </div>
+
+  <div class="grid">
+    <div class="stat-card">
+      <div class="num">{{ themes|length }}</div>
+      <div class="label">Themes</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray)">
+        {% for t in themes %}<span class="tag">{{ t.label }}</span> {% endfor %}
+      </div>
+      <a href="/profile/themes" class="action">Manage themes →</a>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ bullets|length }}</div>
+      <div class="label">Resume bullets</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--gray)">
+        {% set hs = bullets | selectattr('strength', 'equalto', 'high') | list %}
+        {% set ms = bullets | selectattr('strength', 'equalto', 'medium') | list %}
+        {{ hs|length }} high · {{ ms|length }} medium · {{ bullets|length - hs|length - ms|length }} supporting
+      </div>
+      <a href="/profile/bullets" class="action">Manage bullets →</a>
+    </div>
+  </div>
+
+  {% if themes %}
+  <div class="section">
+    <div class="section-header">
+      <h3>Summary Variants</h3>
+      <span class="badge">{{ themes|length }} themes</span>
+    </div>
+    <div class="section-body">
+      {% for theme in themes %}
+      <div class="item">
+        <strong>{{ theme.label }}</strong>
+        <div class="bullet-text" style="margin-top:4px">{{ theme.summary[:200] }}{% if theme.summary|length > 200 %}…{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if roles %}
+  <div class="section">
+    <div class="section-header">
+      <h3>Roles &amp; Experience</h3>
+      <span class="badge">{{ roles|length }} roles</span>
+      <a href="/profile/bullets" class="btn" style="margin-left:auto">Manage bullets</a>
+    </div>
+    <div class="section-body">
+      {% for role in roles %}
+      <div class="item">
+        <strong>{{ role.company or 'Unknown' }}</strong> — {{ role.title or 'Unknown' }}
+        {% for bullet in role.bullets %}
+        <div class="bullet-text" style="margin-top:6px;padding-left:12px;border-left:2px solid var(--border)">
+          <span class="tag {{ bullet.strength }}">{{ bullet.strength }}</span>
+          {{ bullet.text[:150] }}{% if bullet.text|length > 150 %}…{% endif %}
+          <div class="meta">
+            {% for t in bullet.themes %}<span class="tag">{{ t }}</span> {% endfor %}
+            <span style="font-size:10px;color:#9ca3af">{{ bullet.id }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if education %}
+  <div class="section">
+    <div class="section-header">
+      <h3>Education</h3>
+      <span class="badge">{{ education|length }} entries</span>
+      <a href="/profile/education" class="btn" style="margin-left:auto">Edit</a>
+    </div>
+    <div class="section-body">
+      {% for edu in education %}
+      <div class="item">
+        <strong>{{ edu.degree }}</strong> — {{ edu.school }}
+        <div class="meta">{{ edu.year }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if certifications %}
+  <div class="section">
+    <div class="section-header">
+      <h3>Certifications</h3>
+      <span class="badge">{{ certifications|length }}</span>
+      <a href="/profile/education" class="btn" style="margin-left:auto">Edit</a>
+    </div>
+    <div class="section-body">
+      {% for cert in certifications %}
+      <div class="item">{{ cert }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+</body>
+</html>

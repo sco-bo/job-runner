@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding — Complete!</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root {
+    --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+    --border: #e5e7eb; --text: #111827; --radius: 8px;
+    --green: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+
+  .main { max-width: 640px; margin: 0 auto; padding: 48px 20px; text-align: center; }
+
+  .check-icon { font-size: 64px; margin-bottom: 16px; display: block; }
+
+  h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  p.sub { font-size: 14px; color: var(--gray); margin-bottom: 32px; line-height: 1.6; }
+
+  .card { background: white; border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 24px; margin-bottom: 24px; text-align: left; }
+  .card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .card ul { list-style: none; padding: 0; }
+  .card li { padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .card li:last-child { border-bottom: none; }
+  .card li a { color: var(--blue); text-decoration: none; }
+  .card li a:hover { text-decoration: underline; }
+
+  .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { background: #1e293b; color: white; border: none; border-radius: 6px;
+                 padding: 12px 28px; font-size: 14px; font-weight: 500;
+                 cursor: pointer; text-decoration: none; }
+  .btn-primary:hover { background: #334155; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 12px 28px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; }
+  .btn-secondary:hover { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">← Back to Dashboard</a>
+  <h1>Setup Complete</h1>
+</div>
+
+<div class="main">
+
+  <span class="check-icon">🎉</span>
+
+  <h2>You're all set!</h2>
+  <p class="sub">
+    Your profile and skills bank have been created. You can now start scraping jobs,
+    tailor your resume, and prep for interviews.
+  </p>
+
+  <div class="card">
+    <h3>What to do next</h3>
+    <ul>
+      <li>🏠 <a href="/">Go to the dashboard</a> — start a job pull or browse existing jobs</li>
+      <li>👤 <a href="/profile">Edit your profile</a> — update your info, themes, bullets, or education</li>
+      <li>✨ <a href="/tailor/adhoc">Tailor manually</a> — paste a job description and get a tailored resume prompt</li>
+      <li>🎤 <a href="/interview/adhoc">Interview prep</a> — generate interview prep for a specific role</li>
+    </ul>
+  </div>
+
+  <div class="actions">
+    <a href="/" class="btn-primary">Go to Dashboard</a>
+    <a href="/profile" class="btn-secondary">Edit Profile</a>
+  </div>
+
+</div>
+
+</body>
+</html>

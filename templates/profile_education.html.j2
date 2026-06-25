@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Edit Education &amp; Certs</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root { --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+           --border: #e5e7eb; --text: #111827; --radius: 8px; --green: #22c55e; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .main { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .form-section { background: white; border: 1px solid var(--border);
+                  border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .form-section h3 { font-size: 13px; font-weight: 600; color: var(--gray);
+                     text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .entry-card { background: #f9fafb; border: 1px solid var(--border);
+                border-radius: 6px; padding: 14px; margin-bottom: 10px; }
+  .field { margin-bottom: 8px; }
+  .field label { display: block; font-size: 11px; font-weight: 600;
+                 color: #374151; margin-bottom: 2px; }
+  .field input { width: 100%; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+    font-family: inherit; outline: none; }
+  .field input:focus { border-color: var(--blue); }
+  .field-row { display: flex; gap: 8px; }
+  .field-row .field { flex: 1; }
+  .remove-btn { background: none; border: 1px solid #fecaca; color: #991b1b;
+                border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+                margin-top: 8px; }
+  .remove-btn:hover { background: #fef2f2; }
+  .add-btn { background: none; border: 1px dashed var(--border); color: var(--blue);
+             border-radius: 6px; padding: 8px 16px; font-size: 12px; cursor: pointer;
+             width: 100%; }
+  .add-btn:hover { border-color: var(--blue); background: #f9fafb; }
+  .success-banner { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;
+                    padding: 10px 16px; margin-bottom: 16px; font-size: 13px; color: #166534; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { background: #1e293b; color: white; border: none; border-radius: 6px;
+                 padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { background: #334155; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 10px 24px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-secondary:hover { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/profile">← Back to Profile</a>
+  <h1>Edit Education &amp; Certifications</h1>
+</div>
+
+<div class="main">
+
+  <h2>Education</h2>
+
+  {% if saved %}
+  <div class="success-banner">Saved successfully ✓</div>
+  {% endif %}
+
+  <form method="POST" action="/profile/education">
+
+    <div class="form-section">
+      <h3>Degrees</h3>
+      <div id="edu-list">
+      {% for edu in education %}
+        <div class="entry-card" data-index="{{ loop.index0 }}">
+          <div class="field-row">
+            <div class="field" style="flex:2">
+              <label>Degree</label>
+              <input type="text" name="edu_degree_{{ loop.index0 }}" value="{{ edu.degree }}" required>
+            </div>
+            <div class="field" style="flex:1">
+              <label>Year</label>
+              <input type="number" name="edu_year_{{ loop.index0 }}" value="{{ edu.year }}">
+            </div>
+          </div>
+          <div class="field">
+            <label>School</label>
+            <input type="text" name="edu_school_{{ loop.index0 }}" value="{{ edu.school }}" required>
+          </div>
+          <button type="button" class="remove-btn" onclick="this.closest('.entry-card').style.display='none'">Remove</button>
+        </div>
+      {% endfor %}
+      </div>
+      <button type="button" class="add-btn" onclick="addEducation()" style="margin-top:8px">+ Add degree</button>
+    </div>
+
+    <div class="form-section">
+      <h3>Certifications</h3>
+      <div id="cert-list">
+      {% for cert in certifications %}
+        <div class="entry-card" data-index="{{ loop.index0 }}">
+          <div class="field">
+            <input type="text" name="cert_{{ loop.index0 }}" value="{{ cert }}">
+          </div>
+          <button type="button" class="remove-btn" onclick="this.closest('.entry-card').style.display='none'">Remove</button>
+        </div>
+      {% endfor %}
+      </div>
+      <button type="button" class="add-btn" onclick="addCertification()" style="margin-top:8px">+ Add certification</button>
+    </div>
+
+    <input type="hidden" name="edu_count" id="edu_count" value="{{ education|length }}">
+    <input type="hidden" name="cert_count" id="cert_count" value="{{ certifications|length }}">
+
+    <div class="actions">
+      <a href="/profile" class="btn-secondary">Cancel</a>
+      <button type="submit" class="btn-primary">Save changes</button>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+let eduIndex = {{ education|length }};
+let certIndex = {{ certifications|length }};
+
+function addEducation() {
+  const idx = eduIndex++;
+  const container = document.getElementById('edu-list');
+  const div = document.createElement('div');
+  div.className = 'entry-card';
+  div.innerHTML = `
+    <div class="field-row">
+      <div class="field" style="flex:2">
+        <label>Degree</label>
+        <input type="text" name="edu_degree_new_${idx}" required>
+      </div>
+      <div class="field" style="flex:1">
+        <label>Year</label>
+        <input type="number" name="edu_year_new_${idx}">
+      </div>
+    </div>
+    <div class="field">
+      <label>School</label>
+      <input type="text" name="edu_school_new_${idx}" required>
+    </div>
+    <button type="button" class="remove-btn" onclick="this.closest('.entry-card').style.display='none'">Remove</button>
+  `;
+  container.appendChild(div);
+  document.getElementById('edu_count').value = eduIndex;
+}
+
+function addCertification() {
+  const idx = certIndex++;
+  const container = document.getElementById('cert-list');
+  const div = document.createElement('div');
+  div.className = 'entry-card';
+  div.innerHTML = `
+    <div class="field">
+      <input type="text" name="cert_new_${idx}">
+    </div>
+    <button type="button" class="remove-btn" onclick="this.closest('.entry-card').style.display='none'">Remove</button>
+  `;
+  container.appendChild(div);
+  document.getElementById('cert_count').value = certIndex;
+}
+</script>
+
+</body>
+</html>

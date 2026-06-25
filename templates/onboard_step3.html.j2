@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding — Step 3: Upload & Review</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root {
+    --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+    --border: #e5e7eb; --text: #111827; --radius: 8px;
+    --green: #22c55e; --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+
+  .main { max-width: 780px; margin: 0 auto; padding: 24px 20px; }
+
+  .step-indicator { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 12px; font-weight: 600; }
+  .step-dot.active { background: #1e293b; color: white; }
+  .step-dot.done { background: var(--green); color: white; }
+  .step-dot.pending { background: var(--border); color: var(--gray); }
+  .step-line { width: 24px; height: 2px; background: var(--border); }
+
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  p.sub { font-size: 13px; color: var(--gray); margin-bottom: 20px; }
+
+  /* Upload form */
+  .upload-area { background: white; border: 2px dashed var(--border);
+                 border-radius: var(--radius); padding: 40px 20px;
+                 text-align: center; margin-bottom: 16px; }
+  .upload-area.dragover { border-color: var(--blue); background: #eff6ff; }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-area p { font-size: 13px; color: var(--gray); }
+  .btn-upload { background: #1e293b; color: white; border: none; border-radius: 6px;
+                padding: 10px 24px; font-size: 14px; font-weight: 500;
+                cursor: pointer; margin-top: 12px; }
+  .btn-upload:hover { background: #334155; }
+
+  /* Theme review */
+  .theme-card { background: white; border: 1px solid var(--border);
+                border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; }
+  .theme-card h3 { font-size: 14px; margin-bottom: 8px; }
+  .theme-card .field { margin-bottom: 10px; }
+  .theme-card .field label { display: block; font-size: 11px; font-weight: 600;
+                             color: #374151; margin-bottom: 3px; }
+  .theme-card .field input, .theme-card .field textarea { width: 100%; padding: 7px 9px;
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+    font-family: inherit; outline: none; }
+  .theme-card .field input:focus, .theme-card .field textarea:focus { border-color: var(--blue); }
+  .theme-card .field textarea { min-height: 50px; resize: vertical; }
+  .theme-card .remove-btn { background: none; border: 1px solid #fecaca; color: #991b1b;
+                            border-radius: 4px; padding: 4px 10px; font-size: 11px;
+                            cursor: pointer; }
+  .theme-card .remove-btn:hover { background: #fef2f2; }
+
+  .stats { font-size: 13px; color: var(--gray); margin-bottom: 16px; }
+  .stats strong { color: var(--text); }
+
+  .error-banner { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;
+                  padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #991b1b; }
+  .error-banner ul { margin: 4px 0 0 16px; }
+
+  .theme-explanation { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;
+                       padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1e40af; line-height: 1.5; }
+
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { background: #16a34a; color: white; border: none; border-radius: 6px;
+                 padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { background: #15803d; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 10px 24px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-secondary:hover { background: #f9fafb; }
+  .btn-danger { background: #ef4444; color: white; border: none; border-radius: 6px;
+                padding: 8px 16px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .btn-danger:hover { background: #dc2626; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/onboard?step=2">← Back</a>
+  <h1>Onboarding — Upload & Review</h1>
+</div>
+
+<div class="main">
+
+  <div class="step-indicator">
+    <span class="step-dot done">✓</span>
+    <span class="step-line"></span>
+    <span class="step-dot done">✓</span>
+    <span class="step-line"></span>
+    <span class="step-dot active">3</span>
+    <span class="step-line"></span>
+    <span class="step-dot pending">4</span>
+  </div>
+
+  {% if review_mode %}
+
+  <!-- THEME REVIEW MODE -->
+  <h2>Review your themes</h2>
+  <p class="sub">
+    The LLM identified the following themes from your resume. Review, rename, or remove them
+    before saving. You can have up to 7 themes.
+  </p>
+
+  <div class="stats">
+    <strong>{{ themes|length }}</strong> themes ·
+    <strong>{{ bullet_count }}</strong> bullets across
+    <strong>{{ role_count }}</strong> role(s)
+    {% if extra_count %}<span style="color:var(--red)"> · {{ extra_count }} theme(s) over the 7 limit will be removed</span>{% endif %}
+  </div>
+
+  <div class="theme-explanation">
+    <strong>What are themes?</strong> Themes group your resume bullets by domain of expertise — like "data", "growth", "api", or "compliance". Each theme gets a summary sentence that appears on matched job cards to show the relevant angle of your background. Each bullet is tagged with 1–3 themes so the tool knows which summary to recommend for a given job description.
+  </div>
+
+  {% if errors %}
+  <div class="error-banner">
+    Please fix the following:
+    <ul>
+    {% for err in errors %}
+      <li>{{ err }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/onboard?step=3" id="theme-form">
+    {% for theme in themes %}
+    <div class="theme-card" data-index="{{ loop.index0 }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3>Theme {{ loop.index }}</h3>
+        {% if themes|length > 1 %}
+        <button type="button" class="remove-btn" onclick="removeTheme(this)" data-index="{{ loop.index0 }}">Remove</button>
+        {% endif %}
+      </div>
+      <input type="hidden" name="theme_original_{{ loop.index0 }}" value="{{ theme.original }}">
+      <div class="field">
+        <label for="theme_label_{{ loop.index0 }}">Label</label>
+        <input type="text" id="theme_label_{{ loop.index0 }}" name="theme_label_{{ loop.index0 }}"
+               value="{{ theme.label }}" required>
+      </div>
+      <div class="field">
+        <label for="theme_summary_{{ loop.index0 }}">Summary (2-3 sentences)</label>
+        <textarea id="theme_summary_{{ loop.index0 }}" name="theme_summary_{{ loop.index0 }}"
+                  rows="3">{{ theme.summary }}</textarea>
+      </div>
+    </div>
+    {% endfor %}
+    <input type="hidden" name="confirmed" value="true">
+
+    <div class="actions">
+      <button type="button" class="btn-danger" onclick="goBackToUpload()">← Upload a different file</button>
+      <button type="submit" class="btn-primary">Save profile & finish →</button>
+    </div>
+  </form>
+
+  {% else %}
+
+  <!-- UPLOAD MODE -->
+  <h2>Upload your YAML file</h2>
+  <p class="sub">
+    Paste the YAML output from the LLM below, or upload the file.
+  </p>
+  <p class="sub" style="color:var(--red);margin-top:-12px;font-weight:500;">
+    Note: If the LLM wrapped the YAML in ```yaml code fences, just paste it as-is — the tool will strip them automatically.
+  </p>
+
+  {% if errors %}
+  <div class="error-banner">
+    <strong>Validation errors:</strong>
+    <ul>
+    {% for err in errors %}
+      <li>{{ err }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/onboard?step=3" enctype="multipart/form-data">
+
+    <div class="upload-area" id="upload-area">
+      <div class="upload-icon">📄</div>
+      <p>Drop a YAML file here, or click to browse</p>
+      <input type="file" id="yaml-file" name="yaml_file" accept=".yaml,.yml" style="display:none">
+      <div style="margin-top:12px">
+        <button type="button" class="btn-upload" onclick="document.getElementById('yaml-file').click()">Choose file</button>
+      </div>
+    </div>
+
+    <p style="text-align:center;color:var(--gray);font-size:12px;margin:8px 0 16px">— or paste YAML below —</p>
+
+    <div style="margin-bottom:16px">
+      <textarea id="yaml-text" name="yaml_text" rows="20"
+                style="width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--radius);
+                       font-family:SF Mono,Fira Code,monospace;font-size:12px;line-height:1.5;resize:vertical;
+                       outline:none;background:white;color:var(--text);"
+                placeholder="Paste the YAML output from the LLM here...">{{ yaml_text or '' }}</textarea>
+    </div>
+
+    <div class="actions">
+      <a href="/onboard?step=2" class="btn-secondary">← Back</a>
+      <button type="submit" class="btn-primary">Upload & Review →</button>
+    </div>
+
+  </form>
+  {% endif %}
+
+</div>
+
+<script>
+{% if review_mode %}
+function removeTheme(btn) {
+  const card = btn.closest('.theme-card');
+  card.style.display = 'none';
+  // Remove the required attribute from inputs inside so form still submits
+  card.querySelectorAll('[required]').forEach(el => el.required = false);
+  // Add hidden field to indicate this theme should be removed
+  const hidden = document.createElement('input');
+  hidden.type = 'hidden';
+  hidden.name = 'remove_theme_' + btn.dataset.index;
+  hidden.value = 'true';
+  document.getElementById('theme-form').appendChild(hidden);
+}
+
+function goBackToUpload() {
+  window.location.href = '/onboard?step=3&reset=1';
+}
+{% else %}
+// Drag and drop support
+const area = document.getElementById('upload-area');
+const fileInput = document.getElementById('yaml-file');
+
+area.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  this.classList.add('dragover');
+});
+area.addEventListener('dragleave', function() {
+  this.classList.remove('dragover');
+});
+area.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+fileInput.addEventListener('change', function() {
+  if (this.files.length) handleFile(this.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.match(/\.(yaml|yml)$/i)) {
+    alert('Please select a YAML file (.yaml or .yml)');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('yaml-text').value = e.target.result;
+    document.querySelector('.upload-icon').textContent = '✅';
+    document.querySelector('.upload-area p').textContent = 'File loaded: ' + file.name;
+  };
+  reader.readAsText(file);
+}
+{% endif %}
+</script>
+
+</body>
+</html>

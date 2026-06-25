@@ -256,24 +256,57 @@ def job_status(
 def serve(
     port: int = typer.Option(5001, "--port", "-p", help="Port to listen on."),
     no_browser: bool = typer.Option(False, "--no-browser", help="Don't open browser automatically."),
+    qa: bool = typer.Option(False, "--qa", help="QA mode: isolated profile dir + separate DB on port 5002."),
 ) -> None:
     """Start the local job browser UI at http://localhost:<port>."""
+    import shutil
     import threading
     import webbrowser
     from job_puller.server import app as flask_app
 
-    _require_profile_files()
     config = _load_config()
-    profile, skills_bank = _require_profile_files()
-    db_path = _get_db_path(config)
 
-    if not db_path.exists():
+    if qa:
+        base = Path(__file__).parent.parent
+        profile_dir = base / "profile_qa"
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        # Auto-seed from templates
+        for src_name, dst_name in [("profile.template.yaml", "profile.yaml"),
+                                    ("skills_bank.template.yaml", "skills_bank.yaml")]:
+            dst = profile_dir / dst_name
+            if not dst.exists():
+                src = base / "profile" / src_name
+                if src.exists():
+                    shutil.copy(src, dst)
+        qa_profile_path = profile_dir / "profile.yaml"
+        qa_skills_path = profile_dir / "skills_bank.yaml"
+        if not qa_profile_path.exists() or not qa_skills_path.exists():
+            typer.echo("QA mode: template files not found. Run from the project root.", err=True)
+            raise typer.Exit(1)
+        # Override DB path — init if not exists
+        qa_db_dir = Path.home() / ".job_puller_qa"
+        qa_db_dir.mkdir(parents=True, exist_ok=True)
+        db_path = qa_db_dir / "jobs.db"
+        db.init_db(db_path)  # create if missing
+        # Default port to 5002 if not explicitly set
+        if port == 5001:
+            port = 5002
+        flask_app.config["QA_MODE"] = True
+        flask_app.config["QA_PROFILE_DIR"] = str(profile_dir)
+        flask_app.config["SKILLS_BANK"] = _load_yaml(qa_skills_path)
+    else:
+        _require_profile_files()
+        profile, skills_bank = _require_profile_files()
+        db_path = _get_db_path(config)
+        flask_app.config["SKILLS_BANK"] = skills_bank
+        flask_app.config["QA_MODE"] = False
+
+    if not qa and not db_path.exists():
         typer.echo("No database found. Run `job-puller run` first.", err=True)
         raise typer.Exit(1)
 
-    db.init_db(db_path)  # ensure all migrations (incl. connections table) are applied
+    db.init_db(db_path)  # ensure all migrations (incl. connections table) are applied; no-op if already applied
     flask_app.config["DB_PATH"] = db_path
-    flask_app.config["SKILLS_BANK"] = skills_bank
     flask_app.config["TOP_N"] = config.get("report", {}).get("top_n", 20)
     flask_app.config["CONFIG"] = config
 

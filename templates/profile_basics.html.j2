@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Edit Basics</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root { --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+           --border: #e5e7eb; --text: #111827; --radius: 8px; --red: #ef4444; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .main { max-width: 720px; margin: 0 auto; padding: 24px 20px; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .form-section { background: white; border: 1px solid var(--border);
+                  border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .form-section h3 { font-size: 13px; font-weight: 600; color: var(--gray);
+                     text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 600;
+                 color: #374151; margin-bottom: 4px; }
+  .field input, .field textarea, .field select { width: 100%; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+    font-family: inherit; outline: none; }
+  .field input:focus, .field textarea:focus { border-color: var(--blue); }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .field .hint { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .field-row { display: flex; gap: 12px; }
+  .field-row .field { flex: 1; }
+  .success-banner { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;
+                    padding: 10px 16px; margin-bottom: 16px; font-size: 13px; color: #166534; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { background: #1e293b; color: white; border: none; border-radius: 6px;
+                 padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { background: #334155; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 10px 24px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-secondary:hover { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/profile">← Back to Profile</a>
+  <h1>Edit Basic Info</h1>
+</div>
+
+<div class="main">
+
+  <h2>Basic Profile</h2>
+
+  {% if saved %}
+  <div class="success-banner">Saved successfully ✓</div>
+  {% endif %}
+
+  <form method="POST" action="/profile/basics">
+
+    <div class="form-section">
+      <h3>Basic Info</h3>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" value="{{ data.name or '' }}">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ data.email or '' }}">
+      </div>
+      <div class="field">
+        <label for="location">Location</label>
+        <input type="text" id="location" name="location" value="{{ data.location or '' }}">
+      </div>
+      <div class="field">
+        <label for="linkedin">LinkedIn URL</label>
+        <input type="url" id="linkedin" name="linkedin" value="{{ data.linkedin or '' }}">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Job Preferences</h3>
+      <div class="field">
+        <label for="target_titles">Target titles (one per line)</label>
+        <textarea id="target_titles" name="target_titles">{{ data.target_titles or '' }}</textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="years_experience">Years experience</label>
+          <input type="number" id="years_experience" name="years_experience"
+                 value="{{ data.years_experience or '0' }}">
+        </div>
+        <div class="field">
+          <label for="salary_min">Min salary</label>
+          <input type="number" id="salary_min" name="salary_min"
+                 value="{{ data.salary_min or '' }}">
+        </div>
+        <div class="field">
+          <label for="salary_max">Max salary</label>
+          <input type="number" id="salary_max" name="salary_max"
+                 value="{{ data.salary_max or '' }}">
+        </div>
+      </div>
+      <div class="field">
+        <label for="preferred_locations">Preferred locations (one per line)</label>
+        <textarea id="preferred_locations" name="preferred_locations">{{ data.preferred_locations or '' }}</textarea>
+      </div>
+      <div class="field">
+        <label for="preferred_remote">Remote preference</label>
+        <select id="preferred_remote" name="preferred_remote">
+          <option value="true" {{ 'selected' if data.preferred_remote != false else '' }}>Prefer remote</option>
+          <option value="false" {{ 'selected' if data.preferred_remote == false else '' }}>Open to on-site</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Keywords</h3>
+      <div class="field">
+        <label for="avoid_keywords">Avoid keywords (one per line)</label>
+        <textarea id="avoid_keywords" name="avoid_keywords">{{ data.avoid_keywords or '' }}</textarea>
+        <div class="hint">Jobs containing any of these keywords get a score penalty.</div>
+      </div>
+      <div class="field">
+        <label for="exclude_title_keywords">Exclude title keywords (one per line)</label>
+        <textarea id="exclude_title_keywords" name="exclude_title_keywords">{{ data.exclude_title_keywords or '' }}</textarea>
+        <div class="hint">Jobs with these words in their title are hidden.</div>
+      </div>
+      <div class="field">
+        <label for="industries">Industries (one per line, max 8)</label>
+        <textarea id="industries" name="industries">{{ data.industries or '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>Prompt Context</h3>
+      <div class="field">
+        <label for="role_description">Role description</label>
+        <input type="text" id="role_description" name="role_description"
+               value="{{ data.role_description or 'a job applicant' }}">
+        <div class="hint">Appears in prompts as "I'm [role] applying for the role below."</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a href="/profile" class="btn-secondary">Cancel</a>
+      <button type="submit" class="btn-primary">Save changes</button>
+    </div>
+
+  </form>
+
+</div>
+
+</body>
+</html>

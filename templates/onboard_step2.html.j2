@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding — Step 2: Generate Your Skills Bank</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root {
+    --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+    --border: #e5e7eb; --text: #111827; --radius: 8px;
+    --green: #22c55e; --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+
+  .main { max-width: 800px; margin: 0 auto; padding: 24px 20px; }
+
+  .step-indicator { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 12px; font-weight: 600; }
+  .step-dot.active { background: #1e293b; color: white; }
+  .step-dot.done { background: var(--green); color: white; }
+  .step-dot.pending { background: var(--border); color: var(--gray); }
+  .step-line { width: 24px; height: 2px; background: var(--border); }
+
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  p.sub { font-size: 13px; color: var(--gray); margin-bottom: 20px; }
+
+  .instructions { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius);
+                  padding: 16px 20px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+  .instructions strong { color: #92400e; }
+  .instructions ol { margin: 8px 0 0 20px; }
+
+  .prompt-box { margin-bottom: 16px; }
+  .prompt-box textarea {
+    width: 100%; min-height: 400px; padding: 16px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
+    line-height: 1.6; resize: vertical; background: white; color: var(--text);
+    outline: none;
+  }
+  .prompt-box textarea:focus { border-color: var(--blue); }
+
+  .copy-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .btn-copy {
+    background: #1e293b; color: white; border: none; border-radius: 6px;
+    padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .btn-copy:hover { background: #334155; }
+  .copy-confirm { font-size: 13px; color: #16a34a; display: none; }
+
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { background: #16a34a; color: white; border: none; border-radius: 6px;
+                 padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { background: #15803d; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 10px 24px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-secondary:hover { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/onboard?step=1">← Back</a>
+  <h1>Onboarding — Generate Your Skills Bank</h1>
+</div>
+
+<div class="main">
+
+  <div class="step-indicator">
+    <span class="step-dot done">✓</span>
+    <span class="step-line"></span>
+    <span class="step-dot active">2</span>
+    <span class="step-line"></span>
+    <span class="step-dot pending">3</span>
+    <span class="step-line"></span>
+    <span class="step-dot pending">4</span>
+  </div>
+
+  <h2>Generate your skills bank with AI</h2>
+  <p class="sub">
+    You'll send your resume documents to an LLM (like Claude.ai or ChatGPT) along with a
+    structured prompt. The LLM will extract your experience and format it ready for the tool.
+  </p>
+
+  <div class="instructions">
+    <strong>How this works:</strong>
+    <ol>
+      <li><strong>Copy the prompt below</strong> (click "Copy prompt")</li>
+      <li>Go to your preferred LLM tool (Claude.ai, ChatGPT, etc.)</li>
+      <li>Paste the prompt into a <strong>new conversation</strong></li>
+      <li><strong>Upload 2-3 versions of your resume</strong> (PDF or text) to the conversation</li>
+      <li>Submit and wait for the LLM to generate your structured YAML output</li>
+      <li><strong>Download or copy the YAML output</strong> and come back to Step 3 to upload it</li>
+    </ol>
+  </div>
+
+  <div class="section-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--gray);margin-bottom:8px;">Ready-to-paste prompt</div>
+  <div class="prompt-box">
+    <textarea id="prompt-text" readonly>{{ prompt }}</textarea>
+  </div>
+
+  <div class="copy-bar">
+    <button class="btn-copy" onclick="copyPrompt()">📋 Copy prompt</button>
+    <span class="copy-confirm" id="copy-confirm">Copied to clipboard ✓</span>
+  </div>
+
+  <div class="actions">
+    <a href="/onboard?step=1" class="btn-secondary">← Back</a>
+    <a href="/onboard?step=3" class="btn-primary">I have my YAML file →</a>
+  </div>
+
+</div>
+
+<script>
+function copyPrompt() {
+  const ta = document.getElementById('prompt-text');
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const el = document.getElementById('copy-confirm');
+    el.style.display = 'inline';
+    setTimeout(() => el.style.display = 'none', 2000);
+  });
+}
+</script>
+
+</body>
+</html>

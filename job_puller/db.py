@@ -72,6 +72,16 @@ CREATE TABLE IF NOT EXISTS connections (
     source      TEXT NOT NULL DEFAULT 'manual',
     created_at  TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS onboarding_state (
+    id          INTEGER PRIMARY KEY CHECK (id = 1),
+    step        INTEGER NOT NULL DEFAULT 0,
+    profile     TEXT,
+    themes      TEXT,
+    parsed_data TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
 """
 
 
@@ -340,3 +350,74 @@ def get_run_stats(conn: sqlite3.Connection) -> dict:
         """
     ).fetchone()
     return dict(row)
+
+
+# ---------------------------------------------------------------------------
+# Onboarding state
+# ---------------------------------------------------------------------------
+
+
+def init_onboarding(conn: sqlite3.Connection) -> None:
+    """Ensure the singleton onboarding_state row exists."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO onboarding_state (id, step, profile, themes, parsed_data, created_at, updated_at)
+        VALUES (1, 0, NULL, NULL, NULL, ?, ?)
+        """,
+        (now, now),
+    )
+
+
+def get_onboarding_step(conn: sqlite3.Connection) -> int:
+    row = conn.execute("SELECT step FROM onboarding_state WHERE id = 1").fetchone()
+    return row["step"] if row else 0
+
+
+def get_onboarding_state(conn: sqlite3.Connection) -> dict:
+    row = conn.execute("SELECT * FROM onboarding_state WHERE id = 1").fetchone()
+    if not row:
+        return {"step": 0, "profile": None, "themes": None, "parsed_data": None}
+    return {
+        "step": row["step"],
+        "profile": json.loads(row["profile"]) if row["profile"] else None,
+        "themes": json.loads(row["themes"]) if row["themes"] else None,
+        "parsed_data": json.loads(row["parsed_data"]) if row["parsed_data"] else None,
+    }
+
+
+def save_onboarding_state(
+    conn: sqlite3.Connection,
+    step: int,
+    profile: Optional[dict] = None,
+    themes: Optional[list] = None,
+    parsed_data: Optional[dict] = None,
+) -> None:
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """
+        INSERT INTO onboarding_state (id, step, profile, themes, parsed_data, created_at, updated_at)
+        VALUES (1, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            step = excluded.step,
+            profile = COALESCE(excluded.profile, onboarding_state.profile),
+            themes = COALESCE(excluded.themes, onboarding_state.themes),
+            parsed_data = COALESCE(excluded.parsed_data, onboarding_state.parsed_data),
+            updated_at = excluded.updated_at
+        """,
+        (
+            step,
+            json.dumps(profile) if profile else None,
+            json.dumps(themes) if themes else None,
+            json.dumps(parsed_data) if parsed_data else None,
+            now,
+            now,
+        ),
+    )
+
+
+def clear_onboarding_state(conn: sqlite3.Connection) -> None:
+    conn.execute("DELETE FROM onboarding_state WHERE id = 1")
+    init_onboarding(conn)
