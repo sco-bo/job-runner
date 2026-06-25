@@ -542,6 +542,9 @@
             <button type="submit" class="btn apply" aria-label="Mark as applied">Apply ✓</button>
           </form>
         {% elif view == 'applied' %}
+          {% if job.site == 'manual' %}
+          <a href="/job/{{ job.id }}/edit" class="btn" style="border-color:#93c5fd;color:#1e40af">Edit ✎</a>
+          {% endif %}
           <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
             <input type="hidden" name="status" value="reset">
             <button type="submit" class="btn restore" aria-label="Restore {{ job.title }} at {{ job.company }} to active">Restore</button>
