@@ -209,6 +209,15 @@ def update_job_search_id(conn: sqlite3.Connection, job_id: int, job_search_id: O
     conn.execute("UPDATE jobs SET job_search_id = ? WHERE id = ?", (job_search_id, job_id))
 
 
+def update_job_details(conn: sqlite3.Connection, job_id: int, *, title: str,
+                       company: str, description: str) -> None:
+    """Update title, company, and description for a manual job."""
+    conn.execute(
+        "UPDATE jobs SET title = ?, company = ?, description = ? WHERE id = ?",
+        (title, company, description, job_id),
+    )
+
+
 def get_job_by_id(conn: sqlite3.Connection, job_id: int) -> Optional[sqlite3.Row]:
     return conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
 

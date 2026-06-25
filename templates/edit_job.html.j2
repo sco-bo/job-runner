@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Job #{{ job.id }}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e293b'/><rect x='8' y='13' width='16' height='11' rx='2' fill='%2322c55e'/><rect x='12' y='10' width='8' height='5' rx='1.5' fill='none' stroke='%2322c55e' stroke-width='2'/><rect x='15' y='17' width='2' height='3' rx='1' fill='%231e293b'/></svg>">
+<style>
+  :root { --blue: #3b82f6; --gray: #6b7280; --light: #f9fafb;
+           --border: #e5e7eb; --text: #111827; --radius: 8px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         background: var(--light); color: var(--text); font-size: 14px; }
+  .header { background: #1e293b; color: white; padding: 12px 20px;
+            display: flex; align-items: center; gap: 16px; }
+  .header a { color: #94a3b8; text-decoration: none; font-size: 13px; }
+  .header a:hover { color: white; }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .main { max-width: 640px; margin: 0 auto; padding: 24px 20px; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  p.sub { font-size: 13px; color: var(--gray); margin-bottom: 20px; }
+  .form-card { background: white; border: 1px solid var(--border);
+               border-radius: var(--radius); padding: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600;
+                 color: #374151; margin-bottom: 4px; }
+  .field input, .field textarea { width: 100%; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+    font-family: inherit; outline: none; }
+  .field input:focus, .field textarea:focus { border-color: var(--blue); }
+  .field textarea { min-height: 120px; resize: vertical; }
+  .actions { display: flex; gap: 12px; margin-top: 20px; }
+  .btn-primary { background: #1e293b; color: white; border: none; border-radius: 6px;
+                 padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-primary:hover { background: #334155; }
+  .btn-secondary { background: white; color: #374151; border: 1px solid var(--border);
+                   border-radius: 6px; padding: 10px 24px; font-size: 14px;
+                   font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-secondary:hover { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/?view=manual">← Back to Manual Jobs</a>
+  <h1>Edit Job #{{ job.id }}</h1>
+</div>
+
+<div class="main">
+
+  <h2>{{ job.title }}</h2>
+  <p class="sub">{{ job.company }}</p>
+
+  <form method="POST" action="/job/{{ job.id }}/edit">
+
+    <div class="form-card">
+      <div class="field">
+        <label for="title">Job Title</label>
+        <input type="text" id="title" name="title" value="{{ job.title or '' }}" required>
+      </div>
+      <div class="field">
+        <label for="company">Employer Name</label>
+        <input type="text" id="company" name="company" value="{{ job.company or '' }}" required>
+      </div>
+      <div class="field">
+        <label for="description">Job Description</label>
+        <textarea id="description" name="description">{{ job.description or '' }}</textarea>
+      </div>
+
+      <div class="actions">
+        <a href="/?view=manual" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">Save changes</button>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+</body>
+</html>

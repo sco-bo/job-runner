@@ -1034,6 +1034,25 @@ def set_status(job_id: int):
     return redirect(url_for("index"))
 
 
+@app.route("/job/<int:job_id>/edit", methods=["GET", "POST"])
+def edit_job(job_id: int):
+    if request.method == "GET":
+        with _conn() as conn:
+            job = db.get_job_by_id(conn, job_id)
+        if job is None:
+            abort(404)
+        return render_template("edit_job.html.j2", job=job)
+
+    # POST — update title, company, description
+    title = request.form.get("title", "").strip()
+    company = request.form.get("company", "").strip()
+    description = request.form.get("description", "").strip()
+    with _conn() as conn:
+        db.update_job_details(conn, job_id, title=title, company=company,
+                              description=description)
+    return redirect(url_for("index", view="manual"))
+
+
 # ---------------------------------------------------------------------------
 # Onboarding wizard
 # ---------------------------------------------------------------------------
