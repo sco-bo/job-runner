@@ -199,6 +199,10 @@
   [data-theme="dark"] .btn.save.saved { background: #451a03; color: #fcd34d; font-weight: 700; }
   [data-theme="dark"] .btn.tailor { border-color: #065f46; color: #6ee7b7; }
   [data-theme="dark"] .btn.tailor:hover { background: #022c22; }
+  .btn.edit { border-color: #93c5fd; color: #1e40af; }
+  .btn.edit:hover { background: #dbeafe; }
+  [data-theme="dark"] .btn.edit { border-color: #1e40af; color: #93c5fd; }
+  [data-theme="dark"] .btn.edit:hover { background: #1e3a5f; }
 
   /* ── View nav ── */
   .view-nav { display: flex; gap: 0; background: var(--surface); border-bottom: 1px solid var(--border);
@@ -543,14 +547,14 @@
           </form>
         {% elif view == 'applied' %}
           {% if job.site == 'manual' %}
-          <a href="/job/{{ job.id }}/edit" class="btn" style="border-color:#93c5fd;color:#1e40af">Edit ✎</a>
+          <a href="/job/{{ job.id }}/edit" class="btn edit">Edit ✎</a>
           {% endif %}
           <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
             <input type="hidden" name="status" value="reset">
             <button type="submit" class="btn restore" aria-label="Restore {{ job.title }} at {{ job.company }} to active">Restore</button>
           </form>
         {% elif view == 'manual' %}
-          <a href="/job/{{ job.id }}/edit" class="btn" style="border-color:#93c5fd;color:#1e40af">Edit ✎</a>
+          <a href="/job/{{ job.id }}/edit" class="btn edit">Edit ✎</a>
           <form method="POST" action="/job/{{ job.id }}/status" style="display:inline">
             <input type="hidden" name="status" value="applied">
             <button type="submit" class="btn apply" aria-label="Mark as applied">Apply ✓</button>
